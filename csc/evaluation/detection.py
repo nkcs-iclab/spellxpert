@@ -115,11 +115,19 @@ class Template0(Template):
             else:
                 label += c_label
                 predict += c_predict
-        # return f'<div class="csc-pair">\n    <div>{label}</div>\n    <div>{predict}</div>\n</div>\n'
         return f'<div class="csc-pair">\n    <div>{predict}</div>\n</div>\n'
+
+
+class Template1(Template0):
+
+    def eval_one(cls, label: str, predict: str) -> tuple[int, int, int, list[bool], list[bool]]:
+        predict = predict.split('（使用包裹每一个错别字）：')[-1]
+        return super().eval_one(label, predict)
+
 
 templates = [
     Template0,
+    Template1,
 ]
 
 
@@ -153,7 +161,6 @@ class DetectionMetric:
         total_tp, total_fp, total_fn = 0, 0, 0
         for item in data:
             label, predict = item['label'], item['predict']
-            predict = predict.split('（使用包裹每一个错别字）：')[-1]
             tp, fp, fn, label_array, predict_array = self.template.eval_one(label, predict)
             total_tp += tp
             total_fp += fp
