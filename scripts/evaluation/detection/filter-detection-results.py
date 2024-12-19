@@ -15,14 +15,15 @@ black_list = [
     '…', '—', '－', '•', '·', '—>', '～', '~', '@', '——', '&', '#'  # 其他
 ]
 
+opening_tag = '<csc>'
+closing_tag = '</csc>'
+
 
 def main(
         path: str,
         report_root: str = '../../../reports/evaluation/detection',
 ):
     path = pathlib.Path(path)
-    if path.is_dir():
-        path /= 'generated_predictions.jsonl'
     report_path = pathlib.Path(report_root) / path.parent.stem
     report_path.mkdir(parents=True, exist_ok=True)
     data = csc.datasets.utils.load_data_from_file(path)
@@ -33,14 +34,14 @@ def main(
         for item in data:
             label, predict = item['label'], item['predict']
             for char in black_list:
-                label = label.replace(f'<csc>{char}</csc>', char)
-                predict = predict.replace(f'<csc>{char}</csc>', char)
+                label = label.replace(f'{opening_tag}{char}{closing_tag}', char)
+                predict = predict.replace(f'{opening_tag}{char}{closing_tag}', char)
             filtered_generated_predictions.write(json.dumps({
                 'prompt': item['prompt'],
                 'label': label,
                 'predict': predict,
             }, ensure_ascii=False) + '\n')
-            if '<csc>' in predict:
+            if opening_tag in predict:
                 filtered_output.write(f'{predict}\n')
 
 
