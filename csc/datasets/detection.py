@@ -50,7 +50,7 @@ class DetectionDataset(abc.ABC):
         path /= f'template-{self.current_template}'
         path.mkdir(parents=True, exist_ok=True)
         max_input_length, max_full_length = 0, 0
-        with open(path / f'{key}.jsonl', 'w') as file:
+        with (path / f'{key}.jsonl').open('w') as file:
             for item in data:
                 text = json.dumps(item.to_dict(), ensure_ascii=False) + '\n'
                 input_length, full_length = csc.datasets.detection.count_data_length(item)

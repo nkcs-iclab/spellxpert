@@ -28,8 +28,8 @@ def main(
     report_path.mkdir(parents=True, exist_ok=True)
     data = csc.datasets.utils.load_data_from_file(path)
     with (
-        (report_path / 'filtered_output.txt').open('w') as filtered_output,
-        (report_path / 'filtered_generated_predictions.jsonl').open('w') as filtered_generated_predictions,
+        (report_path / 'filtered-output.txt').open('w') as filtered_output,
+        (report_path / 'filtered-generated-predictions.jsonl').open('w') as filtered_generated_predictions,
     ):
         for item in data:
             label, predict = item['label'], item['predict']
