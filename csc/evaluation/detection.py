@@ -85,7 +85,14 @@ class Template0(Template):
         label_array = mark_errors(label, cls.opening_tag, cls.closing_tag)
         predict_array = mark_errors(predict, cls.opening_tag, cls.closing_tag)
         if len(label_array) != len(predict_array):
-            return 0, 0, sum(label_array), label_array, predict_array
+            # Dealing with the situation where there are more punctuation marks at the end of the sentence
+            if len(label_array) - len(predict_array) == 1:
+                label_array = label_array[:-1]
+            elif len(predict_array) - len(label_array) == 1:
+                predict_array = predict_array[:-1]
+            # If the lengths are inconsistent, it is considered that all the wrong characters have not been found
+            else:
+                return 0, 0, sum(label_array), label_array, predict_array
         for i in range(len(label_array)):
             if label_array[i] == 1 and predict_array[i] == 1:
                 tp += 1
@@ -140,15 +147,14 @@ class DetectionMetric:
 
     def write_html_report_head(self):
         self.report_path.mkdir(parents=True, exist_ok=True)
-        with open(self.report_path / 'index.html', 'w') as f:
-            f.write(html_head)
+        (self.report_path / 'index.html').write_text(html_head)
 
     def write_html_report_tail(self):
-        with open(self.report_path / 'index.html', 'a') as f:
+        with (self.report_path / 'index.html').open('a') as f:
             f.write(html_tail)
 
     def write_html_report_entry(self, label: str, predict: str, label_array: list[bool], predict_array: list[bool]):
-        with open(self.report_path / 'index.html', 'a') as f:
+        with (self.report_path / 'index.html').open('a') as f:
             f.write(self.template.html_csc_pair(label, predict, label_array, predict_array))
 
     def print_and_write_json_report(self):
@@ -181,8 +187,12 @@ class DetectionMetric:
         self.result.precision = precision
         self.result.recall = recall
         self.result.f1 = f1
-        self.result.label_error_rate = self.result.n_label_error_chars / self.result.n_chars
-        self.result.predict_error_rate = self.result.n_predict_error_chars / self.result.n_chars
+        if self.result.n_chars > 0:
+            self.result.label_error_rate = self.result.n_label_error_chars / self.result.n_chars
+            self.result.predict_error_rate = self.result.n_predict_error_chars / self.result.n_chars
+        else:
+            self.result.label_error_rate = 0
+            self.result.predict_error_rate = 0
         self.print_and_write_json_report()
         self.write_html_report_tail()
         return self.result

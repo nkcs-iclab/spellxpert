@@ -12,6 +12,7 @@ def main(
 ):
     path = pathlib.Path(path)
     report_path = pathlib.Path(report_root) / path.parent.stem
+    report_path.mkdir(parents=True, exist_ok=True)
     data = csc.datasets.utils.load_data_from_file(path)
     metric = csc.evaluation.detection.DetectionMetric(template, report_path)
     metric.eval(data, report_fn_only=report_fn_only)
