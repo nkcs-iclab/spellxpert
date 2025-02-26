@@ -1,0 +1,7 @@
+{
+  "name": "cscd-ns-reasoning",
+  "files": {
+    "root": "datasets/original/cscd-ns",
+    "test": "test.tsv"
+  }
+}

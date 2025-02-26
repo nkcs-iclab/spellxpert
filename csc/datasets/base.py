@@ -3,10 +3,29 @@ from __future__ import annotations
 import abc
 import json
 import pathlib
+import dataclasses
 
 import csc
 
-from csc.datasets.template import Template
+
+@dataclasses.dataclass
+class DatasetItem:
+    system: str
+    instruction: str
+    input: str
+    output: str
+    corrected: str | None = None
+    has_error: bool | None = None
+
+    def to_dict(self) -> dict:
+        return dataclasses.asdict(self)
+
+
+class Template:
+
+    @classmethod
+    def process_string(cls, string: str) -> DatasetItem:
+        raise NotImplementedError
 
 
 def add_error_tags(string: str, errors: list, opening_tag: str, closing_tag: str) -> str:
@@ -41,23 +60,31 @@ class DetectionDataset(abc.ABC):
         self.data[csc.TRAIN] = all_data[:int(len(all_data) * train_test_split)]
         self.data[csc.TEST] = all_data[int(len(all_data) * train_test_split):]
 
-    def save_data(self, root_path: str):
-        path = pathlib.Path(root_path) / self.config['name'] / 'detection'
+    def save_data(self, root_path: str, variant: str | None = None):
+        path = pathlib.Path(root_path) / self.config['name']
         for key, data in self.data.items():
-            self._save_data(data, path, key)
+            self._save_data(data, path, variant, key)
 
-    def _save_data(self, data: list, path: pathlib.Path, key: str):
+    def _save_data(self, data: list, path: pathlib.Path, variant: str | None, key: str):
         path /= f'template-{self.current_template}'
         path.mkdir(parents=True, exist_ok=True)
         max_input_length, max_full_length = 0, 0
-        with (path / f'{key}.jsonl').open('w') as file:
+        if variant:
+            path = path / f'{variant}-{key}.jsonl'
+        else:
+            path = path / f'{key}.jsonl'
+        if path.exists():
+            print(f'File {path} already exists. Overwrite? (y/[n])')
+            if input().lower() != 'y':
+                return
+        with path.open('w') as file:
             for item in data:
                 text = json.dumps(item.to_dict(), ensure_ascii=False) + '\n'
-                input_length, full_length = csc.datasets.detection.count_data_length(item)
+                input_length, full_length = count_data_length(item)
                 max_input_length = max(max_input_length, input_length)
                 max_full_length = max(max_full_length, full_length)
                 file.write(text)
-        csc.datasets.utils.print_save_log(data, max_input_length, max_full_length, path, key)
+        csc.datasets.utils.print_save_log(data, max_input_length, max_full_length, path)
 
 
 class Template0(Template):
@@ -70,10 +97,10 @@ class Template0(Template):
     )
 
     @classmethod
-    def process_string(cls, string: str, errors: list | None = None) -> csc.datasets.template.DatasetItem:
+    def process_string(cls, string: str, errors: list | None = None) -> DatasetItem:
         errors = errors or []
         output = add_error_tags(string, errors=errors, opening_tag=cls.opening_tag, closing_tag=cls.closing_tag)
-        return csc.datasets.template.DatasetItem(
+        return DatasetItem(
             system=cls.system,
             instruction=cls.instruction,
             input=string,
@@ -84,10 +111,10 @@ class Template0(Template):
 class Template1(Template0):
 
     @classmethod
-    def process_string(cls, string: str, errors: list | None = None) -> csc.datasets.template.DatasetItem:
+    def process_string(cls, string: str, errors: list | None = None) -> DatasetItem:
         errors = errors or []
         output = add_error_tags(string, errors=errors, opening_tag=cls.opening_tag, closing_tag=cls.closing_tag)
-        return csc.datasets.template.DatasetItem(
+        return DatasetItem(
             system=cls.instruction,
             instruction=string,
             input='',
@@ -114,10 +141,10 @@ class Template2(Template):
     )
 
     @classmethod
-    def process_string(cls, string: str, errors: list | None = None) -> csc.datasets.template.DatasetItem:
+    def process_string(cls, string: str, errors: list | None = None) -> DatasetItem:
         errors = errors or []
         output = add_error_tags(string, errors=errors, opening_tag=cls.opening_tag, closing_tag=cls.closing_tag)
-        return csc.datasets.template.DatasetItem(
+        return DatasetItem(
             system=cls.system,
             instruction=string,
             input='',
@@ -125,13 +152,27 @@ class Template2(Template):
         )
 
 
+class Template3(Template0):
+    instruction = (
+        f'指出句子中的错别字（可能有0、1或多个错别字），不需改正。具体要求如下：\n'
+        f'1. 如果发现错字，将文中错字逐个用<csc></csc>标签包裹。连续的错别字请分别使用标签包裹。例如AB为错字，应标记为<csc>A</csc><csc>B</csc>，而不是<csc>AB</csc>。\n'
+        f'2. 非错误字符照常输出。\n'
+        f'3. 同一个词里如果只有一个字为错字，标记一个错的那个字即可，不要将正确的字包含进标记中。例如“竟争”应该标记为<csc>竟</csc>争而不是<csc>竟争</csc>。\n'
+        f'4. 不要试图修改句子中的错别字，只需标记错别字。\n'
+        f'5. 无需给出解释和备注（即使你对某个输出不确定），仅输出带标签的句子。严禁输出指定输出格式之外的内容。\n'
+        f'6. 严禁新增任何原文中没有的内容。例如无需添加原句中遗漏或不存在的句末标点。\n\n'
+        f'待检查的句子：\n\n'
+    )
+
+
 templates = [
     Template0,
     Template1,
     Template2,
+    Template3,
 ]
 
 
-def count_data_length(data: csc.datasets.template.DatasetItem) -> tuple[int, int]:
+def count_data_length(data: DatasetItem) -> tuple[int, int]:
     input_length = len(data.system) + len(data.instruction) + len(data.input)
     return input_length, input_length + (len(data.output) if data.output else 0)

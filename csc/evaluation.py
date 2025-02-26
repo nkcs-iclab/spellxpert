@@ -5,7 +5,6 @@ import json
 import pathlib
 import dataclasses
 
-from csc.evaluation.template import Template
 
 html_head = '''
 <!DOCTYPE html>
@@ -75,6 +74,13 @@ class DetectionMetricResult:
         return dataclasses.asdict(self)
 
 
+class Template:
+
+    @classmethod
+    def eval(cls, label: list, predict: list):
+        raise NotImplementedError
+
+
 class Template0(Template):
     opening_tag = '<csc>'
     closing_tag = '</csc>'
@@ -104,7 +110,9 @@ class Template0(Template):
 
     @classmethod
     def html_csc_pair(cls, label: str, predict: str, label_array: list[bool], predict_array: list[bool]) -> str:
+        label = label.split('<｜end▁of▁sentence｜>')[0]
         label_chars = label.replace(cls.opening_tag, '').replace(cls.closing_tag, '')
+        predict = predict.split('</think>\n\n')[-1]
         predict_chars = predict.replace(cls.opening_tag, '').replace(cls.closing_tag, '')
         if not (len(label_chars) == len(predict_chars) == len(label_array) == len(predict_array)):
             return ''
@@ -127,14 +135,27 @@ class Template0(Template):
 
 class Template1(Template0):
 
+    @classmethod
     def eval_one(cls, label: str, predict: str) -> tuple[int, int, int, list[bool], list[bool]]:
         predict = predict.split('（使用包裹每一个错别字）：')[-1]
+        return super().eval_one(label, predict)
+
+
+class Template2(Template0):
+
+    @classmethod
+    def eval_one(cls, label: str, predict: str) -> tuple[int, int, int, list[bool], list[bool]]:
+        if '</think>' not in predict:
+            return super().eval_one(label, label)
+        predict = predict.split('</think>\n\n')[-1]
+        label = label.split('<｜end▁of▁sentence｜>')[0]
         return super().eval_one(label, predict)
 
 
 templates = [
     Template0,
     Template1,
+    Template2,
 ]
 
 

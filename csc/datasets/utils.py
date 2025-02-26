@@ -43,13 +43,12 @@ def extract_errors_from_strings(text_with_errors: str, text_corrected: str) -> l
 
 
 def print_save_log(
-        data: list[csc.datasets.template.DatasetItem],
+        data: list[csc.datasets.base.DatasetItem],
         max_input_length: int,
         max_full_length: int,
         path: pathlib.Path,
-        key: str,
 ):
-    print(f'Saved {len(data)} items to {path / f'{key}.jsonl'}')
+    print(f'Saved {len(data)} items to {path}')
     print('Max input length:', max_input_length)
     print('Max full length:', max_full_length)
 

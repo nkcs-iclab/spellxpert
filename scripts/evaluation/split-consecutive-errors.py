@@ -20,7 +20,7 @@ def separate_tagged_string(string: str) -> str:
 
 def main(
         path: str,
-        report_root: str = '../../../reports/evaluation/detection',
+        report_root: str = '../../../reports/evaluation',
 ):
     path = pathlib.Path(path)
     report_path = pathlib.Path(report_root) / path.parent.stem

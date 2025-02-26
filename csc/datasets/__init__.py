@@ -1,12 +1,12 @@
-import csc.datasets.template
 import csc.datasets.utils
-import csc.datasets.detection
+import csc.datasets.base
 
-from csc.datasets.stcn.detection import STCNDetectionDataset
-from csc.datasets.cscd_ns.detection import CSCDNSDetectionDataset
+from csc.datasets.stcn import STCNDataset
+from csc.datasets.cscd_ns import CSCDNSDataset
+from csc.datasets.cscd_ns_reasoning import CSCDNSReasoningDataset
 
 datasets = {
-    'stcn-g1.detection': STCNDetectionDataset,
-    'stcn-g2.detection': STCNDetectionDataset,
-    'cscd-ns.detection': CSCDNSDetectionDataset,
+    'stcn': STCNDataset,
+    'cscd-ns': CSCDNSDataset,
+    'cscd-ns-reasoning': CSCDNSReasoningDataset,
 }

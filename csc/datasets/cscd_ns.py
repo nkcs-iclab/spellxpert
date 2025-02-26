@@ -2,10 +2,10 @@ import tqdm
 
 import csc
 
-from csc.datasets.detection import DetectionDataset
+from csc.datasets.base import DetectionDataset
 
 
-class CSCDNSDetectionDataset(DetectionDataset):
+class CSCDNSDataset(DetectionDataset):
 
     def load_data(self, template: int):
         self.current_template = template
@@ -19,7 +19,7 @@ class CSCDNSDetectionDataset(DetectionDataset):
             if not csc.datasets.utils.compare_string_length_and_warn(text_with_errors, text_corrected):
                 continue
             errors = csc.datasets.utils.extract_errors_from_strings(text_with_errors, text_corrected)
-            template = csc.datasets.detection.templates[self.current_template]
+            template = csc.datasets.base.templates[self.current_template]
             item = template.process_string(text_with_errors, errors)
             item.corrected = text_corrected
             item.has_error = len(errors) > 0

@@ -135,7 +135,7 @@ def main(*path: str):
             strings.append(extract_eval_info(path))
         else:
             raise ValueError(f'Unknown path: {path}')
-    pathlib.Path('temp.txt').write_text('\n'.join(strings))
+    pathlib.Path('entries.txt').write_text('\n'.join(strings))
 
 
 if __name__ == '__main__':
