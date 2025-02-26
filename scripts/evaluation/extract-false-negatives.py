@@ -8,7 +8,7 @@ import csc
 def main(
         path: str,
         template: int,
-        report_root: str = '../../../reports/evaluation',
+        report_root: str = '../../reports/evaluation',
 ):
     path = pathlib.Path(path)
     report_path = pathlib.Path(report_root) / path.parent.stem

@@ -7,6 +7,7 @@ from csc.datasets.cscd_ns_reasoning import CSCDNSReasoningDataset
 
 datasets = {
     'stcn': STCNDataset,
+    'stcn-reasoning': STCNDataset,
     'cscd-ns': CSCDNSDataset,
     'cscd-ns-reasoning': CSCDNSReasoningDataset,
 }

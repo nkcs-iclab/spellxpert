@@ -7,7 +7,7 @@ import csc
 def main(
         path: str,
         template: int,
-        report_root: str = '../../../reports/evaluation',
+        report_root: str = '../../reports/evaluation',
         report_fn_only: bool = False,
 ):
     path = pathlib.Path(path)

@@ -21,7 +21,8 @@ closing_tag = '</csc>'
 
 def main(
         path: str,
-        report_root: str = '../../../reports/evaluation',
+        remove_black_list: bool = True,
+        report_root: str = '../../reports/evaluation',
 ):
     path = pathlib.Path(path)
     report_path = pathlib.Path(report_root) / path.parent.stem
@@ -33,9 +34,12 @@ def main(
     ):
         for item in data:
             label, predict = item['label'], item['predict']
-            for char in black_list:
-                label = label.replace(f'{opening_tag}{char}{closing_tag}', char)
-                predict = predict.replace(f'{opening_tag}{char}{closing_tag}', char)
+            if remove_black_list:
+                for char in black_list:
+                    label = label.replace(f'{opening_tag}{char}{closing_tag}', char)
+                    predict = predict.replace(f'{opening_tag}{char}{closing_tag}', char)
+            predict = predict.split('</think>\n\n')[-1]
+            label = label.split('<｜end▁of▁sentence｜>')[0]
             filtered_generated_predictions.write(json.dumps({
                 'prompt': item['prompt'],
                 'label': label,

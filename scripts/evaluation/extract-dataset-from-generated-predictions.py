@@ -26,7 +26,7 @@ templates = {
 def main(
         path: str,
         template: str,
-        report_root: str = '../../../reports/evaluation',
+        report_root: str = '../../reports/evaluation',
 ):
     path = pathlib.Path(path)
     report_path = pathlib.Path(report_root) / path.parent.stem

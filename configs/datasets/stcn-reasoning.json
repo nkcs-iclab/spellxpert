@@ -1,0 +1,10 @@
+{
+  "name": "stcn-reasoning",
+  "files": {
+    "root": ""
+  },
+  "variants": {
+    "g1": {},
+    "g2": {}
+  }
+}
