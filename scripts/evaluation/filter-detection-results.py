@@ -38,7 +38,7 @@ def main(
                 for char in black_list:
                     label = label.replace(f'{opening_tag}{char}{closing_tag}', char)
                     predict = predict.replace(f'{opening_tag}{char}{closing_tag}', char)
-            predict = predict.split('</think>\n\n')[-1]
+            predict = predict.split('</think>\n\n')[-1] if '</think>' in predict else ''
             label = label.split('<｜end▁of▁sentence｜>')[0]
             filtered_generated_predictions.write(json.dumps({
                 'prompt': item['prompt'],
