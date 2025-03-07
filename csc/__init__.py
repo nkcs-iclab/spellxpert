@@ -1,4 +1,6 @@
-import csc.datasets
+from csc.utils import *
+
+import csc.data
 import csc.evaluation
 
 TRAIN = 'train'

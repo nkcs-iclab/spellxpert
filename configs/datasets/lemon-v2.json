@@ -1,0 +1,13 @@
+{
+  "name": "lemon-v2",
+  "root": "datasets/original/lemon_v2",
+  "files": {
+    "car-test": "car.txt",
+    "cot-test": "cot.txt",
+    "enc-test": "enc.txt",
+    "gam-test": "gam.txt",
+    "mec-test": "mec.txt",
+    "new-test": "new.txt",
+    "nov-test": "nov.txt"
+  }
+}

@@ -1,10 +1,4 @@
 {
   "name": "stcn",
-  "files": {
-    "root": ""
-  },
-  "variants": {
-    "g1": {},
-    "g2": {}
-  }
+  "root": ""
 }

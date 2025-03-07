@@ -1,7 +1,7 @@
 {
   "name": "cscd-ns",
-  "files": {
-    "root": "datasets/original/cscd-ns",
+  "root": "datasets/original/cscd-ns",
+  "files":{
     "train": "train.tsv",
     "valid": "dev.tsv",
     "test": "test.tsv",
