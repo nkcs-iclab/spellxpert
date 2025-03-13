@@ -1,4 +1,9 @@
 {
   "name": "stcn",
-  "root": ""
+  "root": "",
+  "variants": {
+    "g3": {
+      "root": "datasets/original/stcn/g3"
+    }
+  }
 }

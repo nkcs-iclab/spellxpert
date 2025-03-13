@@ -12,7 +12,8 @@ black_list = [
     '『', '』', '《', '》', '<', '>',  # 书名
     '（', '）', '【', '】', '(', ')', '[', ']',  # 括号
     '＋', '+', '-', '*', '×', '/', '=', '%',  # 运算
-    '…', '—', '－', '•', '·', '—>', '～', '~', '@', '——', '&', '#'  # 其他
+    '…', '—', '－', '•', '·', '—>', '～', '~', '@', '——', '&', '#',  # 其他
+    '竟',
 ]
 
 opening_tag = '<csc>'
@@ -27,7 +28,7 @@ def main(
     path = pathlib.Path(path)
     report_path = pathlib.Path(report_root) / path.parent.stem
     report_path.mkdir(parents=True, exist_ok=True)
-    data = csc.datasets.utils.load_data_from_file(path)
+    data = csc.load_file(path)
     with (
         (report_path / 'filtered-output.txt').open('w') as filtered_output,
         (report_path / 'filtered-generated-predictions.jsonl').open('w') as filtered_generated_predictions,
