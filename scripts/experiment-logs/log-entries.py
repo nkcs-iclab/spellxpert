@@ -60,13 +60,13 @@ def extract_train_info(path: pathlib.Path) -> str:
     if not (config := path / 'llamaboard_config.yaml').exists():
         print('No llamaboard_config.yaml found. Maybe this training was run without llamaboard?')
         return path.name
-    config = csc.datasets.utils.load_data_from_file(config)
-    args = csc.datasets.utils.load_data_from_file(path / 'training_args.yaml')
+    config = csc.load_file(config)
+    args = csc.load_file(path / 'training_args.yaml')
     train_info = TrainInfo(
         name=pathlib.Path(args['output_dir']).name,
         model_name_or_path=pathlib.Path(args['model_name_or_path']).name,
         finetuning_type=args['finetuning_type'],
-        checkpoint_path=','.join(config['top.checkpoint_path']),
+        checkpoint_path=','.join(config['top.checkpoint_path']) if config['top.checkpoint_path'] else '',
         stage=args['stage'],
         dataset_dir=args['dataset_dir'],
         dataset=','.join(config['train.dataset']),
@@ -102,13 +102,13 @@ def extract_eval_info(path: pathlib.Path) -> str:
     if not (config := path / 'llamaboard_config.yaml').exists():
         print('No llamaboard_config.yaml found. Maybe this evaluation was run without llamaboard?')
         return path.name
-    config = csc.datasets.utils.load_data_from_file(config)
-    args = csc.datasets.utils.load_data_from_file(path / 'training_args.yaml')
+    config = csc.load_file(config)
+    args = csc.load_file(path / 'training_args.yaml')
     eval_info = EvalInfo(
         name=pathlib.Path(args['output_dir']).name,
         model_name_or_path=pathlib.Path(args['model_name_or_path']).name,
         finetuning_type=args['finetuning_type'],
-        checkpoint_path=','.join(config['top.checkpoint_path']),
+        checkpoint_path=','.join(config['top.checkpoint_path']) if config['top.checkpoint_path'] else '',
         dataset_dir=args['dataset_dir'],
         dataset=','.join(config['eval.dataset']),
         comment='',
