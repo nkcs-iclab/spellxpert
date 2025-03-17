@@ -1,58 +1,39 @@
 import re
-import enum
+import abc
 import pathlib
 import dataclasses
 
 import csc
 
-html_head = '''
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>CSC Evaluation</title>
-    <style>
-        .tp {
-            color: green;
-        }
-        .fp {
-            color: blue;
-        }
-        .fn {
-            color: red;
-        }
-        .csc-pair {
-            margin: 5px;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-radius: 10px;
-        }
-    </style>
-</head>
-<body>
-'''
 
-html_tail = '''
-</body>
-</html>
-'''
+@dataclasses.dataclass
+class EvaluationConfig:
+    @dataclasses.dataclass
+    class HTMLReportConfig:
+        enabled: bool = True
+        filter: csc.report.Filter = csc.report.Filter.HAS_FN
 
+    @dataclasses.dataclass
+    class JSONReportConfig:
+        enabled: bool = True
 
-def mark_errors(string: str, opening_tag: str, closing_tag: str) -> list[bool]:
-    is_error = []
-    pattern = re.compile(rf'{opening_tag}(.?){closing_tag}')
-    current_index = 0
-    for match in pattern.finditer(string):
-        start, end = match.span()
-        while current_index < start:
-            is_error.append(False)
-            current_index += 1
-        is_error.append(True)
-        current_index = end
-    while current_index < len(string):
-        is_error.append(False)
-        current_index += 1
-    return is_error
+    @dataclasses.dataclass
+    class ExtractionConfig:
+        enabled: bool = True
+        filter: csc.report.Filter = csc.report.Filter.HAS_FN
+
+    @dataclasses.dataclass
+    class FilterConfig:
+        enabled: bool = False
+
+    report_path: str | pathlib.Path
+    html_report: HTMLReportConfig = dataclasses.field(default_factory=HTMLReportConfig)
+    json_report: JSONReportConfig = dataclasses.field(default_factory=JSONReportConfig)
+    extract_output: ExtractionConfig = dataclasses.field(default_factory=ExtractionConfig)
+    filter_output: FilterConfig = dataclasses.field(default_factory=FilterConfig)
+
+    def __post_init__(self):
+        self.report_path = pathlib.Path(self.report_path)
 
 
 @dataclasses.dataclass
@@ -79,26 +60,59 @@ class EvaluationResult:
     sample_statistics: Statistic = dataclasses.field(default_factory=Statistic)
 
 
-class Template:
+class Template(abc.ABC):
 
     @classmethod
+    @abc.abstractmethod
     def eval_one(cls, label: str, predict: str) -> tuple[int, int, int, list[bool], list[bool]]:
         raise NotImplementedError
 
     @classmethod
-    def html_csc_pair(cls, label: str, label_array: list[bool], predict_array: list[bool]) -> str:
-        raise NotImplementedError
+    def clean_prompt(cls, prompt: str) -> str:
+        return prompt
+
+    @classmethod
+    def clean_label(cls, label: str) -> str:
+        return label
+
+    @classmethod
+    def clean_predict(cls, predict: str) -> str:
+        return predict
 
 
 class Template0(Template):
+    """
+    For training template 1
+    """
     opening_tag = '<csc>'
     closing_tag = '</csc>'
 
     @classmethod
+    def mark_errors(cls, string) -> list[bool]:
+        is_error = []
+        pattern = re.compile(rf'{cls.opening_tag}(.?){cls.closing_tag}')
+        current_index = 0
+        for match in pattern.finditer(string):
+            start, end = match.span()
+            while current_index < start:
+                is_error.append(False)
+                current_index += 1
+            is_error.append(True)
+            current_index = end
+        while current_index < len(string):
+            is_error.append(False)
+            current_index += 1
+        return is_error
+
+    @classmethod
+    def clean_prompt(cls, prompt: str) -> str:
+        return prompt.split('user\n')[-1].split('<|im_end|>\n<|im_start|>assistant\n')[0].split('\nassistant\n')[0]
+
+    @classmethod
     def eval_one(cls, label: str, predict: str) -> tuple[int, int, int, list[bool], list[bool]]:
         tp, fp, fn = 0, 0, 0
-        label_array = mark_errors(label, cls.opening_tag, cls.closing_tag)
-        predict_array = mark_errors(predict, cls.opening_tag, cls.closing_tag)
+        label_array = cls.mark_errors(label)
+        predict_array = cls.mark_errors(predict)
         if len(label_array) != len(predict_array):
             # Dealing with the situation where there are more punctuation marks at the end of the sentence
             if len(label_array) - len(predict_array) == 1:
@@ -117,89 +131,31 @@ class Template0(Template):
                 fn += 1
         return tp, fp, fn, label_array, predict_array
 
-    @classmethod
-    def html_csc_pair(cls, label: str, label_array: list[bool], predict_array: list[bool]) -> str:
-        label_chars = label.replace(cls.opening_tag, '').replace(cls.closing_tag, '')
-        if not (len(label_chars) == len(label_array) == len(predict_array)):
-            return ''
-        output_string = []
-        for b_label, b_predict, c_label in zip(label_array, predict_array, label_chars):
-            if b_label == 1 and b_predict == 1:
-                output_string.append(f'<span class="tp">{c_label}</span>')
-            elif b_label == 0 and b_predict == 1:
-                output_string.append(f'<span class="fp">{c_label}</span>')
-            elif b_label == 1 and b_predict == 0:
-                output_string.append(f'<span class="fn">{c_label}</span>')
-            else:
-                output_string.append(c_label)
-        return f'<div class="csc-pair">{''.join(output_string)}</div>\n'
-
 
 class Template1(Template0):
     """
-    Suitable for `deepseek3` template. Uses vLLM for inference.
+    Suitable for `deepseek3` template
+    Uses vLLM for inference
+    For training template 3
     """
 
-    @staticmethod
-    def _remove_special_tokens(label: str | None = None, predict: str | None = None) -> tuple[str | None, str | None]:
-        if label is not None:
-            label = label.split('<｜end▁of▁sentence｜>')[0]
-        if predict is not None:
-            predict = predict.split('</think>\n\n')[-1]
-        return label, predict
+    @classmethod
+    def clean_prompt(cls, prompt: str) -> str:
+        return prompt.split('待检查的句子：\n\n\n')[-1].split('<｜Assistant｜>')[0]
 
     @classmethod
-    def eval_one(cls, label: str, predict: str) -> tuple[int, int, int, list[bool], list[bool]]:
-        # if '</think>' not in predict:
-        #     # If the </think> tag is not found, it means the maximum output tokens were reached.
-        #     # We will consider the output as correct in this case.
-        #     return super().eval_one(label, label)
-        label, predict = cls._remove_special_tokens(label, predict)
-        return super().eval_one(label, predict)
+    def clean_label(cls, label: str) -> str:
+        return label.split('<｜end▁of▁sentence｜>')[0]
 
     @classmethod
-    def html_csc_pair(cls, label: str, label_array: list[bool], predict_array: list[bool]) -> str:
-        label, predict = cls._remove_special_tokens(label)
-        return super().html_csc_pair(label, label_array, predict_array)
+    def clean_predict(cls, predict: str) -> str:
+        return predict.split('\n</think>\n\n')[-1]
 
 
 templates = [
     Template0,
     Template1,
 ]
-
-
-class Filter(enum.IntFlag):
-    HAS_FN = enum.auto()
-    HAS_FP = enum.auto()
-    HAS_TP = enum.auto()
-    HAS_TN = enum.auto()
-
-
-@dataclasses.dataclass
-class EvaluationConfig:
-    @dataclasses.dataclass
-    class HTMLReportConfig:
-        enabled: bool = True
-        filter: Filter = Filter.HAS_FN
-
-    @dataclasses.dataclass
-    class ExtractionConfig:
-        enabled: bool = True
-        filter: Filter = Filter.HAS_FN
-
-    @dataclasses.dataclass
-    class FilterConfig:
-        enabled: bool = False
-
-    report_path: str | pathlib.Path
-    html_report: HTMLReportConfig = dataclasses.field(default_factory=HTMLReportConfig)
-    json_report: bool = True
-    extract_output: ExtractionConfig = dataclasses.field(default_factory=ExtractionConfig)
-    filter_output: FilterConfig = dataclasses.field(default_factory=FilterConfig)
-
-    def __post_init__(self):
-        self.report_path = pathlib.Path(self.report_path)
 
 
 def add(a, b):
@@ -216,73 +172,60 @@ class Metric:
         self.config = config
         self.template = templates[template]
         self.result = EvaluationResult()
-
-    def write_html_report_head(self):
-        (self.config.report_path / 'index.html').write_text(html_head)
-
-    def write_html_report_tail(self):
-        with (self.config.report_path / 'index.html').open('a') as f:
-            f.write(html_tail)
-
-    def write_html_report_entry(self, label: str, label_array: list[bool], predict_array: list[bool]):
-        with (self.config.report_path / 'index.html').open('a') as f:
-            f.write(self.template.html_csc_pair(label, label_array, predict_array))
-
-    @staticmethod
-    def should_pick(tp: int, fp: int, fn: int, length: int, filter_: Filter) -> bool:
-        status = (
-                (Filter.HAS_TP if tp > 0 else 0) |
-                (Filter.HAS_FP if fp > 0 else 0) |
-                (Filter.HAS_FN if fn > 0 else 0) |
-                (Filter.HAS_TN if tp + fn + fp < length else 0)
-        )
-        return status & filter_ == filter_
+        self.reports = csc.report.ReportManager(self.config)
 
     def eval(self, data: list[dict]) -> EvaluationResult:
-        if self.config.report_path.exists():
-            print(f'Report path {self.config.report_path} already exists. Overwrite? (y/[n])')
-            if input().lower() != 'y':
-                return self.result
-        self.config.report_path.mkdir(parents=True, exist_ok=True)
-
-        if self.config.html_report.enabled:
-            self.write_html_report_head()
+        if not self.reports.init():
+            return self.result
+        self.reports.write_head()
 
         total_tp, total_fp, total_fn = 0, 0, 0
         self.result.char_statistics.n_total = 0
         self.result.sample_statistics.n_total = 0
-        n_label_chars = 0
+        has_label = False
         for item in data:
-            label, predict = item['label'], item['predict']
+            prompt, label, predict = (
+                self.template.clean_prompt(item['prompt']),
+                self.template.clean_label(item['label']),
+                self.template.clean_predict(item['predict']),
+            )
+            self.result.char_statistics.n_total += len(prompt)
+            self.result.sample_statistics.n_total += 1
+
             tp, fp, fn, label_array, predict_array = self.template.eval_one(label, predict)
             total_tp += tp
             total_fp += fp
             total_fn += fn
-            self.result.char_statistics.n_total += len(label_array) if len(label_array) else len(predict_array)
-            n_label_chars += len(label_array)
-            self.result.sample_statistics.label.n_error = add(
-                self.result.sample_statistics.label.n_error,
-                sum(label_array) > 0,
-            )
+
+            has_label |= len(label_array)
             self.result.char_statistics.label.n_error = add(
                 self.result.char_statistics.label.n_error,
                 sum(label_array),
             )
-            self.result.sample_statistics.predict.n_error = add(
-                self.result.sample_statistics.predict.n_error,
-                sum(predict_array) > 0,
+            self.result.sample_statistics.label.n_error = add(
+                self.result.sample_statistics.label.n_error,
+                sum(label_array) > 0,
             )
             self.result.char_statistics.predict.n_error = add(
                 self.result.char_statistics.predict.n_error,
                 sum(predict_array),
             )
+            self.result.sample_statistics.predict.n_error = add(
+                self.result.sample_statistics.predict.n_error,
+                sum(predict_array) > 0,
+            )
 
-            if self.config.html_report.enabled:
-                if self.should_pick(tp, fp, fn, len(label_array), self.config.html_report.filter):
-                    self.write_html_report_entry(label, label_array, predict_array)
-            self.result.sample_statistics.n_total += 1
+            self.reports.write_entry(
+                tp=tp,
+                fp=fp,
+                fn=fn,
+                length=len(label_array),
+                prompt=prompt,
+                label_array=label_array,
+                predict_array=predict_array,
+            )
 
-        if n_label_chars > 0:
+        if has_label:
             precision = total_tp / (total_tp + total_fp + 1e-8)
             recall = total_tp / (total_tp + total_fn + 1e-8)
             f1 = 2 * precision * recall / (precision + recall + 1e-8)
@@ -295,7 +238,6 @@ class Metric:
             self.result.sample_statistics.label.error_rate = (
                     self.result.sample_statistics.label.n_error / self.result.sample_statistics.n_total
             )
-
         self.result.char_statistics.predict.error_rate = (
                 self.result.char_statistics.predict.n_error / self.result.char_statistics.n_total
         )
@@ -303,11 +245,5 @@ class Metric:
                 self.result.sample_statistics.predict.n_error / self.result.sample_statistics.n_total
         )
 
-        if self.config.html_report.enabled:
-            self.write_html_report_tail()
-        result_string = csc.prettify(csc.dataclass_to_cleaned_dict(self.result))
-        print(result_string)
-        if self.config.json_report:
-            (self.config.report_path / 'result.json').write_text(result_string)
-
+        self.reports.write_tail(self.result)
         return self.result

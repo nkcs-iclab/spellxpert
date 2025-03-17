@@ -13,7 +13,8 @@ def main(
     config = csc.evaluation.EvaluationConfig(report_path=pathlib.Path(report_root) / path.parent.stem)
     data = csc.load_file(path)
     metric = csc.evaluation.Metric(config, template)
-    metric.eval(data)
+    result = metric.eval(data)
+    print(csc.prettify(csc.dataclass_to_cleaned_dict(result)))
 
 
 if __name__ == '__main__':
