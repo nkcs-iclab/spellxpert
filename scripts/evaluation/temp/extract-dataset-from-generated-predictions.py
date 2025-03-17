@@ -31,7 +31,7 @@ def main(
     path = pathlib.Path(path)
     report_path = pathlib.Path(report_root) / path.parent.stem
     report_path.mkdir(parents=True, exist_ok=True)
-    data = csc.datasets.utils.load_data_from_file(path)
+    data = csc.load_file(path)
     report_path /= f'extracted-dataset-from-{path.stem}.jsonl'
     with report_path.open('w') as f:
         for item in data:

@@ -11,7 +11,7 @@ class EvaluationConfig:
     @dataclasses.dataclass
     class HTMLReportConfig:
         enabled: bool = True
-        filter: csc.report.Filter = csc.report.Filter.HAS_FN
+        filter: csc.report.Filter = csc.report.Filter.FN
 
     @dataclasses.dataclass
     class JSONReportConfig:
@@ -20,11 +20,13 @@ class EvaluationConfig:
     @dataclasses.dataclass
     class ExtractionConfig:
         enabled: bool = True
-        filter: csc.report.Filter = csc.report.Filter.HAS_FN
+        filter: csc.report.Filter = csc.report.Filter.FN
+        mode: csc.report.OutputMode = csc.report.OutputMode.JSONL
 
     @dataclasses.dataclass
     class FilterConfig:
         enabled: bool = False
+        black_list: list[str] = dataclasses.field(default_factory=list)
 
     report_path: str | pathlib.Path
     html_report: HTMLReportConfig = dataclasses.field(default_factory=HTMLReportConfig)
@@ -79,6 +81,12 @@ class Template(abc.ABC):
     def clean_predict(cls, predict: str) -> str:
         return predict
 
+    @classmethod
+    def filter_text(cls, text: str, black_list: list[str]) -> str:
+        for char in black_list:
+            text = text.replace(char, '')
+        return text
+
 
 class Template0(Template):
     """
@@ -113,6 +121,9 @@ class Template0(Template):
         tp, fp, fn = 0, 0, 0
         label_array = cls.mark_errors(label)
         predict_array = cls.mark_errors(predict)
+        if label == '':
+            # No labels provided. Assuming all predictions are correct.
+            return sum(predict_array), 0, 0, label_array, predict_array
         if len(label_array) != len(predict_array):
             # Dealing with the situation where there are more punctuation marks at the end of the sentence
             if len(label_array) - len(predict_array) == 1:
@@ -121,7 +132,7 @@ class Template0(Template):
                 predict_array = predict_array[:-1]
             # If the lengths are inconsistent, it is considered that all the wrong characters have not been found
             else:
-                return 0, 0, sum(label_array), label_array, predict_array
+                return 0, 0, sum(label_array), label_array, [False] * len(label_array)
         for i in range(len(label_array)):
             if label_array[i] == 1 and predict_array[i] == 1:
                 tp += 1
@@ -130,6 +141,12 @@ class Template0(Template):
             elif label_array[i] == 1 and predict_array[i] == 0:
                 fn += 1
         return tp, fp, fn, label_array, predict_array
+
+    @classmethod
+    def filter_text(cls, text: str, black_list: list[str]) -> str:
+        for char in black_list:
+            text = text.replace(f'{cls.opening_tag}{char}{cls.closing_tag}', char)
+        return text
 
 
 class Template1(Template0):
@@ -149,7 +166,15 @@ class Template1(Template0):
 
     @classmethod
     def clean_predict(cls, predict: str) -> str:
+        if '\n</think>\n\n' not in predict:
+            return ''
         return predict.split('\n</think>\n\n')[-1]
+
+    @classmethod
+    def clean_reasoning(cls, predict: str) -> str:
+        if '\n</think>\n\n' not in predict:
+            return ''
+        return predict.split('<think>\n')[-1].split('\n</think>\n\n')[0]
 
 
 templates = [
@@ -184,11 +209,12 @@ class Metric:
         self.result.sample_statistics.n_total = 0
         has_label = False
         for item in data:
-            prompt, label, predict = (
-                self.template.clean_prompt(item['prompt']),
-                self.template.clean_label(item['label']),
-                self.template.clean_predict(item['predict']),
-            )
+            prompt = self.template.clean_prompt(item['prompt'])
+            label = self.template.clean_label(item['label'])
+            predict = self.template.clean_predict(item['predict'])
+            if self.config.filter_output.enabled:
+                label = self.template.filter_text(label, self.config.filter_output.black_list)
+                predict = self.template.filter_text(predict, self.config.filter_output.black_list)
             self.result.char_statistics.n_total += len(prompt)
             self.result.sample_statistics.n_total += 1
 
@@ -220,7 +246,8 @@ class Metric:
                 fp=fp,
                 fn=fn,
                 length=len(label_array),
-                prompt=prompt,
+                item=item,
+                template=self.template,
                 label_array=label_array,
                 predict_array=predict_array,
             )
