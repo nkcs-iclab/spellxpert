@@ -13,12 +13,9 @@ class Filter(enum.IntFlag):
     TP = enum.auto()
     TN = enum.auto()
 
-    def to_string(self) -> str:
-        return '-'.join([name for name, member in self.__class__.__members__.items() if member & self])
-
-
 class OutputMode(enum.IntFlag):
     JSONL = enum.auto()
+    CLEANED_JSONL = enum.auto()
     HUMAN_READABLE = enum.auto()
     PLAIN_TEXT = enum.auto()
 
@@ -37,8 +34,10 @@ class ReportManager:
         self.config.report_path.mkdir(parents=True, exist_ok=True)
 
         if self.config.html_report.enabled:
+            filter_name = self.config.html_report.filter.name if self.config.html_report.filter is not None else 'None'
+            filter_name = filter_name.replace('|', '-')
             self.reports['html_report'] = HTMLReport(
-                self.config.report_path / f'html-report-{self.config.html_report.filter.to_string()}.html',
+                self.config.report_path / f'html-report-{filter_name}.html',
                 filter_=self.config.html_report.filter,
             )
         if self.config.json_report.enabled:
@@ -175,44 +174,52 @@ class ExtractReport(Report):
         super().__init__(path, filter_)
         self.mode = mode
         self.index = 1
-        self.jsonl_path = self.path / f'extract-output-{self.filter.to_string()}.jsonl'
-        self.human_readable_path = self.path / f'extract-output-{self.filter.to_string()}.jsonl.txt'
-        self.plain_text_path = self.path / f'extract-output-{self.filter.to_string()}.plain.txt'
+        filter_name = self.filter.name if self.filter is not None else 'None'
+        filter_name = filter_name.replace('|', '-')
+        self.jsonl_path = self.path / f'extract-output-{filter_name}.jsonl'
+        self.cleaned_jsonl_path = self.path / f'extract-output-{filter_name}.cleaned.jsonl'
+        self.human_readable_path = self.path / f'extract-output-{filter_name}.cleaned.txt'
+        self.plain_text_path = self.path / f'extract-output-{filter_name}.plain.txt'
 
     def write_head(self):
         if OutputMode.JSONL in self.mode:
             self.jsonl_path.write_text('')
+        if OutputMode.CLEANED_JSONL in self.mode:
+            self.cleaned_jsonl_path.write_text('')
         if OutputMode.HUMAN_READABLE in self.mode:
             self.human_readable_path.write_text('')
         if OutputMode.PLAIN_TEXT in self.mode:
             self.plain_text_path.write_text('')
 
     def write_entry(self, item: dict, template: csc.evaluation.Template, *_, **__):
+        prompt = template.clean_prompt(item['prompt'])
+        label = template.clean_label(item['label'])
+        predict = template.clean_predict(item['predict'])
+        if hasattr(template, 'clean_reasoning') and callable(template.clean_reasoning):
+            new_item = {
+                'id': self.index,
+                'input': prompt,
+                'reasoning': template.clean_reasoning(item['predict']),
+                'output': predict,
+                'label': label,
+            }
+        else:
+            new_item = {
+                'id': self.index,
+                'input': prompt,
+                'output': predict,
+                'label': label,
+            }
         if OutputMode.JSONL in self.mode:
             with self.jsonl_path.open('a') as f:
                 f.write(csc.prettify(item, indent=None) + '\n')
+        if OutputMode.JSONL in self.mode:
+            with self.cleaned_jsonl_path.open('a') as f:
+                f.write(csc.prettify(new_item, indent=None) + '\n')
         if OutputMode.HUMAN_READABLE in self.mode:
             with self.human_readable_path.open('a') as f:
-                prompt = template.clean_prompt(item['prompt'])
-                label = template.clean_label(item['label'])
-                predict = template.clean_predict(item['predict'])
-                if hasattr(template, 'clean_reasoning') and callable(template.clean_reasoning):
-                    new_item = {
-                        'id': self.index,
-                        'input': prompt,
-                        'reasoning': template.clean_reasoning(item['predict']),
-                        'predict': predict,
-                        'label': label,
-                    }
-                else:
-                    new_item = {
-                        'id': self.index,
-                        'input': prompt,
-                        'predict': predict,
-                        'label': label,
-                    }
                 f.write(csc.prettify(new_item) + '\n')
         if OutputMode.PLAIN_TEXT in self.mode:
             with self.plain_text_path.open('a') as f:
-                f.write(template.clean_predict(item['predict']) + '\n')
+                f.write(predict + '\n')
         self.index += 1

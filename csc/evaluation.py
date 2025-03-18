@@ -11,7 +11,7 @@ class EvaluationConfig:
     @dataclasses.dataclass
     class HTMLReportConfig:
         enabled: bool = True
-        filter: csc.report.Filter = csc.report.Filter.FN
+        filter: csc.report.Filter | None = csc.report.Filter.FN
 
     @dataclasses.dataclass
     class JSONReportConfig:
@@ -20,7 +20,7 @@ class EvaluationConfig:
     @dataclasses.dataclass
     class ExtractionConfig:
         enabled: bool = True
-        filter: csc.report.Filter = csc.report.Filter.FN
+        filter: csc.report.Filter | None = csc.report.Filter.FN
         mode: csc.report.OutputMode = csc.report.OutputMode.JSONL
 
     @dataclasses.dataclass
