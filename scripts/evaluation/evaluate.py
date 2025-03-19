@@ -3,14 +3,16 @@ import pathlib
 
 import csc
 
-FN = csc.report.Filter.FN
-FP = csc.report.Filter.FP
-TP = csc.report.Filter.TP
-TN = csc.report.Filter.TN
-JSONL = csc.report.OutputMode.JSONL
-CLEANED_JSONL = csc.report.OutputMode.CLEANED_JSONL
-HUMAN_READABLE = csc.report.OutputMode.HUMAN_READABLE
-PLAIN_TEXT = csc.report.OutputMode.PLAIN_TEXT
+
+def parse_enum(cls, value: str | None):
+    if value is None:
+        return None
+    options = [v.strip() for v in value.split('|')]
+    options = [getattr(cls, v) for v in options]
+    result = 0
+    for option in options:
+        result |= option
+    return result
 
 
 def main(
@@ -27,17 +29,29 @@ def main(
         filter_output_black_list_path: str = 'black-list.txt',
 ):
     path = pathlib.Path(path)
-    config = csc.evaluation.EvaluationConfig(report_path=pathlib.Path(report_root) / path.parent.stem)
-    config.html_report.enabled = html_report_enabled
-    config.html_report.filter = eval(html_report_filter) if html_report_filter is not None else None
-    config.json_report.enabled = json_report_enabled
-    config.extract_output.enabled = extract_output_enabled
-    config.extract_output.filter = eval(extract_output_filter) if extract_output_filter is not None else None
-    config.extract_output.mode = eval(extract_output_mode)
-    config.filter_output.enabled = filter_output_enabled
+
+    config = csc.evaluation.EvaluationConfig(
+        report_path=pathlib.Path(report_root) / path.parent.stem,
+        html_report=csc.evaluation.HTMLReportConfig(
+            enabled=html_report_enabled,
+            filter=parse_enum(csc.report.Filter, html_report_filter),
+        ),
+        json_report=csc.evaluation.JSONReportConfig(
+            enabled=json_report_enabled,
+        ),
+        extract_output=csc.evaluation.ExtractionConfig(
+            enabled=extract_output_enabled,
+            filter=parse_enum(csc.report.Filter, extract_output_filter),
+            mode=parse_enum(csc.report.OutputMode, extract_output_mode),
+        ),
+        filter_output=csc.evaluation.FilterConfig(
+            enabled=filter_output_enabled,
+        )
+    )
     if filter_output_enabled:
         filter_output_black_list = csc.load_file(filter_output_black_list_path)
         config.filter_output.black_list = filter_output_black_list
+
     data = csc.load_file(path)
     metric = csc.evaluation.Metric(config, template)
     result = metric.eval(data)

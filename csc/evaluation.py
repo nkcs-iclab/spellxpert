@@ -7,27 +7,31 @@ import csc
 
 
 @dataclasses.dataclass
+class HTMLReportConfig:
+    enabled: bool = True
+    filter: csc.report.Filter | None = csc.report.Filter.FN
+
+
+@dataclasses.dataclass
+class JSONReportConfig:
+    enabled: bool = True
+
+
+@dataclasses.dataclass
+class ExtractionConfig:
+    enabled: bool = True
+    filter: csc.report.Filter | None = csc.report.Filter.FN
+    mode: csc.report.OutputMode = csc.report.OutputMode.JSONL
+
+
+@dataclasses.dataclass
+class FilterConfig:
+    enabled: bool = False
+    black_list: list[str] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass
 class EvaluationConfig:
-    @dataclasses.dataclass
-    class HTMLReportConfig:
-        enabled: bool = True
-        filter: csc.report.Filter | None = csc.report.Filter.FN
-
-    @dataclasses.dataclass
-    class JSONReportConfig:
-        enabled: bool = True
-
-    @dataclasses.dataclass
-    class ExtractionConfig:
-        enabled: bool = True
-        filter: csc.report.Filter | None = csc.report.Filter.FN
-        mode: csc.report.OutputMode = csc.report.OutputMode.JSONL
-
-    @dataclasses.dataclass
-    class FilterConfig:
-        enabled: bool = False
-        black_list: list[str] = dataclasses.field(default_factory=list)
-
     report_path: str | pathlib.Path
     html_report: HTMLReportConfig = dataclasses.field(default_factory=HTMLReportConfig)
     json_report: JSONReportConfig = dataclasses.field(default_factory=JSONReportConfig)
