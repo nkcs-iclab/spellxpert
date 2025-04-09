@@ -27,7 +27,7 @@ class ExtractionConfig:
 @dataclasses.dataclass
 class FilterConfig:
     enabled: bool = False
-    black_list: list[str] = dataclasses.field(default_factory=list)
+    whitelist: set[str] = dataclasses.field(default_factory=set)
 
 
 @dataclasses.dataclass
@@ -86,8 +86,8 @@ class Template(abc.ABC):
         return predict
 
     @classmethod
-    def filter_text(cls, text: str, black_list: list[str]) -> str:
-        for char in black_list:
+    def filter_text(cls, text: str, whitelist: set[str]) -> str:
+        for char in whitelist:
             text = text.replace(char, '')
         return text
 
@@ -147,9 +147,31 @@ class Template0(Template):
         return tp, fp, fn, label_array, predict_array
 
     @classmethod
-    def filter_text(cls, text: str, black_list: list[str]) -> str:
-        for char in black_list:
-            text = text.replace(f'{cls.opening_tag}{char}{cls.closing_tag}', char)
+    def filter_text(cls, text: str, whitelist: set[str]) -> str:
+        text_array = cls.mark_errors(text)
+        text_without_tags = text.replace(cls.opening_tag, '').replace(cls.closing_tag, '')
+        for i in range(len(text_array)):
+            if text_array[i]:
+                whitelisted = False
+                for context_len in range(0, 7):
+                    if i - context_len >= 0:
+                        context = text_without_tags[i - context_len:i + 1]
+                        if context in whitelist:
+                            whitelisted = True
+                            break
+                    if i + context_len < len(text_array):
+                        context = text_without_tags[i:i + context_len + 1]
+                        if context in whitelist:
+                            whitelisted = True
+                            break
+                if whitelisted:
+                    text_array[i] = False
+        text = ''
+        for should_mark, char in zip(text_array, text_without_tags):
+            if should_mark:
+                text += f'{cls.opening_tag}{char}{cls.closing_tag}'
+            else:
+                text += char
         return text
 
 
@@ -217,8 +239,8 @@ class Metric:
             label = self.template.clean_label(item['label'])
             predict = self.template.clean_predict(item['predict'])
             if self.config.filter_output.enabled:
-                label = self.template.filter_text(label, self.config.filter_output.black_list)
-                predict = self.template.filter_text(predict, self.config.filter_output.black_list)
+                label = self.template.filter_text(label, self.config.filter_output.whitelist)
+                predict = self.template.filter_text(predict, self.config.filter_output.whitelist)
             self.result.char_statistics.n_total += len(prompt)
             self.result.sample_statistics.n_total += 1
 

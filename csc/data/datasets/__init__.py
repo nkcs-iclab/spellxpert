@@ -6,4 +6,5 @@ datasets = {
     'cscd-ns': CSCDNSDataset,
     'lemon-v2': LemonV2Dataset,
     'stcn': STCNDataset,
+    'tianjindaily': STCNDataset,
 }

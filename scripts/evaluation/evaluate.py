@@ -26,7 +26,7 @@ def main(
         extract_output_filter: str | None = 'TP | FP',
         extract_output_mode: str = 'JSONL | CLEANED_JSONL | HUMAN_READABLE | PLAIN_TEXT',
         filter_output_enabled: bool = True,
-        filter_output_black_list_path: str = 'black-list.txt',
+        filter_output_whitelist_path: str = 'whitelist.txt',
 ):
     path = pathlib.Path(path)
 
@@ -49,8 +49,7 @@ def main(
         )
     )
     if filter_output_enabled:
-        filter_output_black_list = csc.load_file(filter_output_black_list_path)
-        config.filter_output.black_list = filter_output_black_list
+        config.filter_output.whitelist = csc.load_file(filter_output_whitelist_path)
 
     data = csc.load_file(path)
     metric = csc.evaluation.Metric(config, template)
