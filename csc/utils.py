@@ -14,6 +14,16 @@ def load_file(path: str | pathlib.Path, file_type: str | None = None):
         return [json.loads(line) for line in path.read_text().splitlines() if line]
     if file_type == 'yaml':
         return yaml.safe_load(path.read_text())
+    if file_type == 'pkl':
+        import pickle
+        objs = []
+        with path.open('rb') as f:
+            while True:
+                try:
+                    objs.append(pickle.load(f))
+                except EOFError:
+                    break
+        return tuple(objs)
     if file_type in {'txt', 'tsv', 'csv'}:
         return [line for line in path.read_text().splitlines() if line]
     raise ValueError(f'Unsupported file type: {file_type}')

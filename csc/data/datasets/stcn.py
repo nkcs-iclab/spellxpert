@@ -54,13 +54,18 @@ class STCNDataset(Dataset):
                     item.output = None
                     self.data[csc.TEST].append(item)
         else:
+            content_id = 0
             for file in tqdm.tqdm(list(pathlib.Path(self.config['root']).rglob('article.json'))):
                 data = csc.load_file(file)
-                sentences = csc.data.utils.split_sentences(data['content'])
+                content = data['content']
+                self.context_dict[content_id] = content
+                sentences = csc.data.utils.split_sentences(content)
                 for sentence in sentences:
                     sentence = clean_text(sentence)
                     if should_output(sentence):
+                        self.query_dict[sentence] = content_id
                         template = csc.data.base.templates[self.template]
                         item = template.process_string(sentence, [])
                         item.output = None
                         self.data[csc.TEST].append(item)
+                content_id += 1

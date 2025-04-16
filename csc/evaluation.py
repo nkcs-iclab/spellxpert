@@ -29,6 +29,9 @@ class FilterConfig:
     enabled: bool = False
     label_whitelist: set[str] = dataclasses.field(default_factory=set)
     predict_whitelist: set[str] = dataclasses.field(default_factory=set)
+    context_dict: dict[int, str] = dataclasses.field(default_factory=dict)
+    context_threshold: int = 1
+    query_dict: dict[str, int] = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass
@@ -87,7 +90,7 @@ class Template(abc.ABC):
         return predict
 
     @classmethod
-    def filter_text(cls, text: str, whitelist: set[str]) -> str:
+    def filter_text(cls, text: str, whitelist: set[str], context: str = '') -> str:
         for char in whitelist:
             text = text.replace(char, '')
         return text
@@ -148,21 +151,21 @@ class Template0(Template):
         return tp, fp, fn, label_array, predict_array
 
     @classmethod
-    def filter_text(cls, text: str, whitelist: set[str]) -> str:
+    def filter_text(cls, text: str, whitelist: set[str], context: str = '', context_threshold: int = 1) -> str:
         text_array = cls.mark_errors(text)
         text_without_tags = text.replace(cls.opening_tag, '').replace(cls.closing_tag, '')
         for i in range(len(text_array)):
             if text_array[i]:
                 whitelisted = False
-                for context_len in range(0, 7):
-                    if i - context_len >= 0:
-                        context = text_without_tags[i - context_len:i + 1]
-                        if context in whitelist:
+                for word_len in range(0, 7):
+                    if i - word_len >= 0:
+                        word = text_without_tags[i - word_len:i + 1]
+                        if word in whitelist or (context.count(word) > context_threshold and word_len > 0):
                             whitelisted = True
                             break
-                    if i + context_len < len(text_array):
-                        context = text_without_tags[i:i + context_len + 1]
-                        if context in whitelist:
+                    if i + word_len < len(text_array):
+                        word = text_without_tags[i:i + word_len + 1]
+                        if word in whitelist or (context.count(word) > context_threshold and word_len > 0):
                             whitelisted = True
                             break
                 if whitelisted:
@@ -240,8 +243,18 @@ class Metric:
             label = self.template.clean_label(item['label'])
             predict = self.template.clean_predict(item['predict'])
             if self.config.filter_output.enabled:
+                context_id = self.config.filter_output.query_dict.get(prompt)
+                if context_id:
+                    context = self.config.filter_output.context_dict.get(context_id, '')
+                else:
+                    context = ''
                 label = self.template.filter_text(label, self.config.filter_output.label_whitelist)
-                predict = self.template.filter_text(predict, self.config.filter_output.predict_whitelist)
+                predict = self.template.filter_text(
+                    predict,
+                    self.config.filter_output.predict_whitelist,
+                    context,
+                    self.config.filter_output.context_threshold,
+                )
             self.result.char_statistics.n_total += len(prompt)
             self.result.sample_statistics.n_total += 1
 

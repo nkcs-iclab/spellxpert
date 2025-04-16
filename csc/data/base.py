@@ -1,5 +1,6 @@
 import abc
 import json
+import pickle
 import pathlib
 import dataclasses
 
@@ -160,6 +161,8 @@ class Dataset(abc.ABC):
         self.template = template
         self.variant = variant
         self.data = {}
+        self.context_dict = {}
+        self.query_dict = {}
 
     @abc.abstractmethod
     def load_data(self):
@@ -200,3 +203,18 @@ class Dataset(abc.ABC):
                 max_full_length = max(max_full_length, full_length)
                 file.write(text)
         print_save_log(data, max_input_length, max_full_length, path)
+
+    def save_context(self, root:str | pathlib.Path):
+        if not self.context_dict or not self.query_dict:
+            print('No context or query data to save.')
+            return
+        path = pathlib.Path(root) / self.config['name']
+        path.mkdir(parents=True, exist_ok=True)
+        if self.variant:
+            path = path / f'{self.variant}-context.pkl'
+        else:
+            path = path / 'context.pkl'
+        with path.open('wb') as file:
+            pickle.dump(self.context_dict, file)
+            pickle.dump(self.query_dict, file)
+        print(f'Context and query data saved to {path.resolve().absolute()}.')

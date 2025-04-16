@@ -28,6 +28,8 @@ def main(
         filter_output_enabled: bool = True,
         filter_output_label_whitelist_path: list[str] | None = None,
         filter_output_predict_whitelist_path: list[str] | None = None,
+        filter_output_context_path: str | None = None,
+        filter_output_context_threshold: int = 1,
 ):
     path = pathlib.Path(path)
 
@@ -59,6 +61,9 @@ def main(
                 predict_whitelist.update(csc.load_file(predict_whitelist_path))
         config.filter_output.label_whitelist = label_whitelist
         config.filter_output.predict_whitelist = predict_whitelist
+        if filter_output_context_path:
+            config.filter_output.context_dict, config.filter_output.query_dict = csc.load_file(filter_output_context_path)
+        config.filter_output.context_threshold = filter_output_context_threshold
 
     data = csc.load_file(path)
     metric = csc.evaluation.Metric(config, template)
