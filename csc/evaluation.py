@@ -27,7 +27,8 @@ class ExtractionConfig:
 @dataclasses.dataclass
 class FilterConfig:
     enabled: bool = False
-    whitelist: set[str] = dataclasses.field(default_factory=set)
+    label_whitelist: set[str] = dataclasses.field(default_factory=set)
+    predict_whitelist: set[str] = dataclasses.field(default_factory=set)
 
 
 @dataclasses.dataclass
@@ -239,8 +240,8 @@ class Metric:
             label = self.template.clean_label(item['label'])
             predict = self.template.clean_predict(item['predict'])
             if self.config.filter_output.enabled:
-                label = self.template.filter_text(label, self.config.filter_output.whitelist)
-                predict = self.template.filter_text(predict, self.config.filter_output.whitelist)
+                label = self.template.filter_text(label, self.config.filter_output.label_whitelist)
+                predict = self.template.filter_text(predict, self.config.filter_output.predict_whitelist)
             self.result.char_statistics.n_total += len(prompt)
             self.result.sample_statistics.n_total += 1
 

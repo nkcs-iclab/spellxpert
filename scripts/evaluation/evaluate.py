@@ -26,7 +26,8 @@ def main(
         extract_output_filter: str | None = 'TP | FP',
         extract_output_mode: str = 'JSONL | CLEANED_JSONL | HUMAN_READABLE | PLAIN_TEXT',
         filter_output_enabled: bool = True,
-        filter_output_whitelist_path: str = 'whitelist.txt',
+        filter_output_label_whitelist_path: list[str] | None = None,
+        filter_output_predict_whitelist_path: list[str] | None = None,
 ):
     path = pathlib.Path(path)
 
@@ -49,7 +50,15 @@ def main(
         )
     )
     if filter_output_enabled:
-        config.filter_output.whitelist = csc.load_file(filter_output_whitelist_path)
+        label_whitelist, predict_whitelist = set(), set()
+        if filter_output_label_whitelist_path:
+            for label_whitelist_path in filter_output_label_whitelist_path:
+                label_whitelist.update(csc.load_file(label_whitelist_path))
+        if filter_output_predict_whitelist_path:
+            for predict_whitelist_path in filter_output_predict_whitelist_path:
+                predict_whitelist.update(csc.load_file(predict_whitelist_path))
+        config.filter_output.label_whitelist = label_whitelist
+        config.filter_output.predict_whitelist = predict_whitelist
 
     data = csc.load_file(path)
     metric = csc.evaluation.Metric(config, template)

@@ -44,7 +44,7 @@ class STCNDataset(Dataset):
 
     def load_data(self):
         self.data[csc.TEST] = []
-        if self.variant in ('g3'):
+        if self.variant in {'g3'}:
             for file in tqdm.tqdm(list(pathlib.Path(self.config['root']).rglob('*.txt'))):
                 data = csc.load_file(file)
                 for line in tqdm.tqdm(data, desc=f'Loading data'):
