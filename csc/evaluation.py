@@ -62,6 +62,7 @@ class EvaluationResult:
             error_rate: float | None = None
 
         n_total: int | None = None
+        n_correct: int | None = None
         label: InnerStatistic = dataclasses.field(default_factory=InnerStatistic)
         predict: InnerStatistic = dataclasses.field(default_factory=InnerStatistic)
 
@@ -237,11 +238,14 @@ class Metric:
         total_tp, total_fp, total_fn = 0, 0, 0
         self.result.char_statistics.n_total = 0
         self.result.sample_statistics.n_total = 0
+        self.result.sample_statistics.n_correct = 0
         has_label = False
         for item in data:
             prompt = self.template.clean_prompt(item['prompt'])
             label = self.template.clean_label(item['label'])
             predict = self.template.clean_predict(item['predict'])
+            if label == predict:
+                self.result.sample_statistics.n_correct += 1
             if self.config.filter_output.enabled:
                 context_id = self.config.filter_output.query_dict.get(prompt)
                 if context_id:
