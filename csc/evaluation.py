@@ -30,8 +30,14 @@ class FilterConfig:
     label_whitelist: set[str] = dataclasses.field(default_factory=set)
     predict_whitelist: set[str] = dataclasses.field(default_factory=set)
     context_dict: dict[int, str] = dataclasses.field(default_factory=dict)
-    context_threshold: int = 1
     query_dict: dict[str, int] = dataclasses.field(default_factory=dict)
+    context_threshold: int = 1
+    context_compare_length: int = 2
+    whitelist_compare_range: list[int] = dataclasses.field(default_factory=list)
+
+    def __post_init__(self):
+        if not self.whitelist_compare_range:
+            self.whitelist_compare_range = [1, 3, 4, 5, 6]
 
 
 @dataclasses.dataclass
@@ -152,24 +158,14 @@ class Template0(Template):
         return tp, fp, fn, label_array, predict_array
 
     @classmethod
-    def filter_text(cls, text: str, whitelist: set[str], context: str = '', context_threshold: int = 1) -> str:
+    def filter_text(cls, text: str, whitelist: set[str], context: str = '', params: dict | None = None) -> str:
+        if not params:
+            params = {}
         text_array = cls.mark_errors(text)
         text_without_tags = text.replace(cls.opening_tag, '').replace(cls.closing_tag, '')
         for i in range(len(text_array)):
             if text_array[i]:
-                whitelisted = False
-                for word_len in range(0, 7):
-                    if i - word_len >= 0:
-                        word = text_without_tags[i - word_len:i + 1]
-                        if word in whitelist or (context.count(word) > context_threshold and word_len > 0):
-                            whitelisted = True
-                            break
-                    if i + word_len < len(text_array):
-                        word = text_without_tags[i:i + word_len + 1]
-                        if word in whitelist or (context.count(word) > context_threshold and word_len > 0):
-                            whitelisted = True
-                            break
-                if whitelisted:
+                if cls._is_whitelisted(i, text_without_tags, whitelist, context, params):
                     text_array[i] = False
         text = ''
         for should_mark, char in zip(text_array, text_without_tags):
@@ -178,6 +174,27 @@ class Template0(Template):
             else:
                 text += char
         return text
+
+    @classmethod
+    def _is_whitelisted(cls, position: int, text: str, whitelist: set[str], context: str, params: dict) -> bool:
+        for whitelist_compare_length in params.get('whitelist_compare_range', []):
+            for l_offset in range(position - (whitelist_compare_length - 1), position + 1):
+                r_offset = l_offset + whitelist_compare_length
+                if l_offset < 0 or r_offset > len(text):
+                    continue
+                substr = text[l_offset:r_offset]
+                if substr in whitelist:
+                    return True
+        context_compare_length = params.get('context_compare_length', 2)
+        context_threshold = params.get('context_threshold', 1)
+        for l_offset in range(position - (context_compare_length - 1), position + 1):
+            r_offset = l_offset + context_compare_length
+            if l_offset < 0 or r_offset > len(text):
+                continue
+            substr = text[l_offset:r_offset]
+            if context.count(substr) > context_threshold:
+                return True
+        return False
 
 
 class Template1(Template0):
@@ -257,7 +274,11 @@ class Metric:
                     predict,
                     self.config.filter_output.predict_whitelist,
                     context,
-                    self.config.filter_output.context_threshold,
+                    {
+                        'whitelist_compare_range': self.config.filter_output.whitelist_compare_range,
+                        'context_compare_length': self.config.filter_output.context_compare_length,
+                        'context_threshold': self.config.filter_output.context_threshold,
+                    },
                 )
             self.result.char_statistics.n_total += len(prompt)
             self.result.sample_statistics.n_total += 1
