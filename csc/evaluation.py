@@ -97,6 +97,10 @@ class Template(abc.ABC):
         return predict
 
     @classmethod
+    def clean_reasoning(cls, predict: str) -> str:
+        return ''
+
+    @classmethod
     def filter_text(cls, text: str, whitelist: set[str], context: str = '') -> str:
         for char in whitelist:
             text = text.replace(char, '')
