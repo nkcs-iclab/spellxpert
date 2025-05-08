@@ -11,8 +11,9 @@ class EvalInfo:
     model_name_or_path: str
     finetuning_type: str
     checkpoint_path: str
-    dataset_dir: str
     dataset: str
+    tags: str
+    l2_tags: str
     comment: str
     cutoff_len: int
     max_samples: int
@@ -30,8 +31,9 @@ class TrainInfo:
     finetuning_type: str
     checkpoint_path: str
     stage: str
-    dataset_dir: str
     dataset: str
+    tags: str
+    l2_tags: str
     learning_rate: float
     num_train_epochs: float
     max_grad_norm: float
@@ -46,7 +48,7 @@ class TrainInfo:
     warmup_steps: int
     optim: str
     packing: bool
-    freeze_trainable_modules: str
+    lora_target: str
     lora_rank: int
     lora_alpha: int
     lora_dropout: float
@@ -64,12 +66,13 @@ def extract_train_info(path: pathlib.Path) -> str:
     args = csc.load_file(path / 'training_args.yaml')
     train_info = TrainInfo(
         name=pathlib.Path(args['output_dir']).name,
-        model_name_or_path=pathlib.Path(args['model_name_or_path']).name,
+        model_name_or_path=config['top.model_name'],
         finetuning_type=args['finetuning_type'],
         checkpoint_path=','.join(config['top.checkpoint_path']) if config['top.checkpoint_path'] else '',
         stage=args['stage'],
-        dataset_dir=args['dataset_dir'],
         dataset=','.join(config['train.dataset']),
+        tags='',
+        l2_tags='',
         learning_rate=args['learning_rate'],
         num_train_epochs=args['num_train_epochs'],
         max_grad_norm=args['max_grad_norm'],
@@ -84,7 +87,7 @@ def extract_train_info(path: pathlib.Path) -> str:
         warmup_steps=args['warmup_steps'],
         optim=args['optim'],
         packing=args['packing'],
-        freeze_trainable_modules=config['train.freeze_trainable_modules'],
+        lora_target=args['lora_target'],
         lora_rank=args['lora_rank'],
         lora_alpha=args['lora_alpha'],
         lora_dropout=args['lora_dropout'],
@@ -106,11 +109,12 @@ def extract_eval_info(path: pathlib.Path) -> str:
     args = csc.load_file(path / 'training_args.yaml')
     eval_info = EvalInfo(
         name=pathlib.Path(args['output_dir']).name,
-        model_name_or_path=pathlib.Path(args['model_name_or_path']).name,
+        model_name_or_path=config['top.model_name'],
         finetuning_type=args['finetuning_type'],
         checkpoint_path=','.join(config['top.checkpoint_path']) if config['top.checkpoint_path'] else '',
-        dataset_dir=args['dataset_dir'],
         dataset=','.join(config['eval.dataset']),
+        tags='',
+        l2_tags='',
         comment='',
         cutoff_len=args['cutoff_len'],
         max_samples=args['max_samples'],
