@@ -6,7 +6,7 @@ def get_wrong_characters(output):
     wrong_chars = {}
 
     # 第一步：查找连续的错字
-    pattern = re.compile(r"((<csc>.{1}</csc>){2,})")
+    pattern = re.compile(r"((<csc>.*?</csc>){2,})")
     matches = list(pattern.finditer(output))
 
     for match in matches:
@@ -14,7 +14,7 @@ def get_wrong_characters(output):
         continuous_part = match.group(1)
         words = re.sub(r'</?csc>', '', continuous_part)
         # 提取所有错字
-        chars = re.findall(r'<csc>(.{1})</csc>', continuous_part)
+        chars = re.findall(r'<csc>(.*?)</csc>', continuous_part)
 
         continuity = len(chars)
 
@@ -27,7 +27,7 @@ def get_wrong_characters(output):
     modified_output = pattern.sub('', output)
 
     # 第三步：查找独立的错字
-    single_matches = re.findall(r'<csc>(.{1})</csc>', modified_output)
+    single_matches = re.findall(r'<csc>(.*?)</csc>', modified_output)
     for char in single_matches:
         # wrong_chars[char] = {'continuity': 1}
         wrong_chars[char] = {}

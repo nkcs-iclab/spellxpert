@@ -89,8 +89,6 @@ def transform_to_chain_format(csc_mes_file: str, output_file: str):
     chain_data = []
     for record in data:
         cot = generate_reasoning_chain(record["wrong_chars"], record)
-        # print(cot)
-        # print("-" * 50)
         chain_record = {
             "input": {
                 "csc_input": record["csc_input"],
@@ -101,6 +99,9 @@ def transform_to_chain_format(csc_mes_file: str, output_file: str):
             "output": record["correct"]
         }
         chain_data.append(chain_record)
+        print(cot)
+        # print(json.dumps(chain_record, ensure_ascii=False, indent=2))
+        print("-" * 50)
 
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(chain_data, f, ensure_ascii=False, indent=2)

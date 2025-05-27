@@ -44,7 +44,7 @@ def process_json_file(input_file, output_file):
 
 
 # 文件路径
-input_file_path = 'extract_test.json'
+input_file_path = 'extract.json'
 output_file_path = 'csc_mes.json'
 
 # 处理文件并保存结果
