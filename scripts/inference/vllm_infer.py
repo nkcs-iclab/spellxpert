@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import pathlib
 from typing import Optional
 
 import fire
@@ -151,6 +152,7 @@ def vllm_infer(
 
     results = LLM(**engine_args).generate(inputs, sampling_params, lora_request=lora_request)
     preds = [[output.text for output in result.outputs] for result in results]
+    pathlib.Path(save_name).parent.mkdir(parents=True, exist_ok=True)
     with open(save_name, "w", encoding="utf-8") as f:
         for index, (text, pred, label) in enumerate(zip(prompts, preds, labels)):
             for pred_i in pred:
