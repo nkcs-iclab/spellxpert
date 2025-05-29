@@ -19,6 +19,7 @@ def main(
         path: str,
         template: int,
         report_root: str = '../../reports/evaluation',
+        run_name: str | None = None,
         html_report_enabled: bool = True,
         html_report_filter: str | None = 'FN',
         json_report_enabled: bool = True,
@@ -31,9 +32,11 @@ def main(
         filter_output_context_path: str | None = None,
 ):
     path = pathlib.Path(path)
+    if run_name is None:
+        run_name = path.parent.stem
 
     config = csc.evaluation.EvaluationConfig(
-        report_path=pathlib.Path(report_root) / path.parent.stem,
+        report_path=pathlib.Path(report_root) / run_name,
         html_report=csc.evaluation.HTMLReportConfig(
             enabled=html_report_enabled,
             filter=parse_enum(csc.report.Filter, html_report_filter),
