@@ -1,3 +1,6 @@
+import re
+
+
 def get_output(output, wrong_chars):
 
     # 首先处理连续错字（长度>1的错字词组）
@@ -30,6 +33,7 @@ def process_continuous_phrases(output, wrong_chars):
                 output = output.replace(tagged_phrase, final_correction)
             else:
                 info['final_correction'] = "No matching correction"
+                output = output.replace(tagged_phrase, phrase)
 
     return output
 
@@ -57,6 +61,7 @@ def process_single_chars(output, wrong_chars):
             final_correction = None
             if not single_chars:
                 final_correction = "No single char correction"
+                output = re.sub(r'</?csc>', '', output)
             else:
                 # 找被所有改正字包含的单字符
                 common_substrings = [sc for sc in single_chars if all(sc in c for c in corrections)]
