@@ -38,6 +38,21 @@ def process_continuous_phrases(output, wrong_chars):
 
     return output
 
+def get_multi_correction(corrections, char, output):
+    """获取备选多字改正词"""
+    multi_chars = [c for c in corrections if len(c) > 1]
+    if multi_chars:
+        multi_correction = next((mc for mc in multi_chars if char in mc), multi_chars[0])
+        start_index = output.find(f'<csc>{char}</csc>')
+        left_char = output[start_index - 1] if start_index > 0 else ''  # 左边界字符，若越界则为空
+        right_char = output[start_index + len(f'<csc>{char}</csc>') + 1] if start_index + len(f'<csc>{char}</csc>') + 1 < len(output) else ''  # 右边界字符，若越界则为空
+        if multi_correction[0] == left_char:
+            multi_correction = multi_correction[1:]  # 删除最左边的字符
+        if multi_correction[-1] == right_char:
+            multi_correction = multi_correction[:-1]  # 删除最右边的字符
+    else:
+        multi_correction = "No matching correction"
+    return multi_correction
 
 def process_single_chars(output, wrong_chars):
     """处理单个错字（长度=1）"""
@@ -53,16 +68,15 @@ def process_single_chars(output, wrong_chars):
                 continue
 
             # 处理需要改正的错字
+            corrections = info.get('corrections', [])
             simplified = info.get('simplified', [])
             single_chars = [c for c in simplified if len(c) == 1]
-            corrections = info.get('corrections', [])
             domain_phrase = info.get('domain_phrase', '')
+            multi_correction = get_multi_correction(corrections, char, output)
 
             # 找出最佳改正字
-            final_correction = None
             if not single_chars:
-                final_correction = "No matching correction"
-                output = output.replace(f'<csc>{char}</csc>', char)
+                final_correction = multi_correction
             else:
                 # 找被所有改正字包含的单字符
                 common_substrings = [sc for sc in single_chars if all(sc in c for c in corrections)]
@@ -73,11 +87,15 @@ def process_single_chars(output, wrong_chars):
                     non_domain_chars = [c for c in single_chars if c not in domain_phrase]
                     final_correction = non_domain_chars[0] if non_domain_chars else single_chars[0]
 
+            # 如果出现自己改成自己的情况且有多字候选词
+            if final_correction == char and multi_correction != "No matching correction":
+                final_correction = multi_correction
+
             # 更新final_correction字段
             info['final_correction'] = final_correction
 
             # 执行替换（如果有效改正字）
-            if isinstance(final_correction, str) and len(final_correction) == 1:
+            if final_correction != "No matching correction":
                 output = output.replace(f'<csc>{char}</csc>', final_correction)
 
     return output
