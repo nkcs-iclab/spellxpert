@@ -50,22 +50,23 @@ def generate_reasoning_chain(wrong_chars: Dict, record: Dict) -> str:
             else:  # 单个错字
                 if not corrections:
                     char_reasoning.append(f'1.候选改正字：在"csc_think"字段中定位被引号包裹的错字，在其附近没找到提示需要修改的语句，因此未能找到该错字的改正字')
-                char_reasoning.append(f'1.候选改正字：在"csc_think"字段中定位被引号包裹的错字，在其附近{corr_desc}')
-                char_reasoning.append(f'2.上下文分析：基于错字所在位置的上下文，确定邻域词组为“{domain_phrase}”')
-                char_reasoning.append(f'3.精简改正字：去除邻域词组已有字后得到精简的候选改正词集合{simplified}')
-
-                if final_correction == "No matching correction":
-                    char_reasoning.append('4.无有效精简改正字：精简改正字中无单字改正字，无法自动改正，因此直接输出原句')
                 else:
-                    # 解释选择逻辑
-                    if all(final_correction in c for c in corrections):
-                        logic = f'“{final_correction}”出现在所有改正词组中，大概率是正确的改正字'
-                    elif final_correction not in domain_phrase:
-                        logic = f'虽然单字改正字“{final_correction}”不是其余候选改正字的子集，但“{final_correction}”没有出现在错字的领域词组中，因此可以选择其作为最终改正字'
-                    else:
-                        logic = f'没有找到所有候选改正字的公共子集或没出现在领域词组中的单字改正字，因此随机选择单字改正字“{final_correction}”作为最终改正字'
+                    char_reasoning.append(f'1.候选改正字：在"csc_think"字段中定位被引号包裹的错字，在其附近{corr_desc}')
+                    char_reasoning.append(f'2.上下文分析：基于错字所在位置的上下文，确定邻域词组为“{domain_phrase}”')
+                    char_reasoning.append(f'3.精简改正字：去除邻域词组已有字后得到精简的候选改正词集合{simplified}')
 
-                    char_reasoning.append(f'4.选择“{final_correction}”：{logic}')
+                    if final_correction == "No matching correction":
+                        char_reasoning.append('4.无有效精简改正字：精简改正字中无单字改正字，无法自动改正，因此直接输出原句')
+                    else:
+                        # 解释选择逻辑
+                        if all(final_correction in c for c in corrections):
+                            logic = f'“{final_correction}”出现在所有改正词组中，大概率是正确的改正字'
+                        elif final_correction not in domain_phrase:
+                            logic = f'虽然单字改正字“{final_correction}”不是其余候选改正字的子集，但“{final_correction}”没有出现在错字的领域词组中，因此可以选择其作为最终改正字'
+                        else:
+                            logic = f'没有找到所有候选改正字的公共子集或没出现在领域词组中的单字改正字，因此随机选择单字改正字“{final_correction}”作为最终改正字'
+
+                        char_reasoning.append(f'4.选择“{final_correction}”：{logic}')
 
         reasoning.extend(char_reasoning)
 
