@@ -197,7 +197,7 @@ class ExtractReport(Report):
         predict = template.clean_predict(item['predict'])
         if hasattr(template, 'clean_reasoning') and callable(template.clean_reasoning):
             new_item = {
-                'id': self.index,
+                'index': item.get('index') or self.index,
                 'input': prompt,
                 'reasoning': template.clean_reasoning(item['predict']),
                 'output': predict,
@@ -205,7 +205,7 @@ class ExtractReport(Report):
             }
         else:
             new_item = {
-                'id': self.index,
+                'index': item.get('index') or self.index,
                 'input': prompt,
                 'output': predict,
                 'label': label,

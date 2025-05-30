@@ -125,7 +125,7 @@ The stage 1 output is presented in `<project root>/reports/evaluation/<run name>
 In `scripts/verification` directory, run:
 
 ```bash
-python extract_verification_dataset.py \
+python extract-verification-dataset.py \
    --path=../../reports/evaluation/<run_name>/extract-output-FP-TP.cleaned.jsonl \
    --output_path=verification_dataset.jsonl \  # Path to save the verification dataset
    --template=1 \  # Template 1 is the best performing output template for SpellXpert
