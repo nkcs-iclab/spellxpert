@@ -1,7 +1,7 @@
 import re
 from get_domain import get_domain
 
-def get_corrections(think, wrong_chars, domain_phrases):
+def get_corrections(think, wrong_chars, output):
     """为每个错字匹配改正字、原始文本、判断是否需要删除"""
     # 定义关键词（删除关键字优先检查）
     remove_keywords = ["是多余的", "应去掉", "应该去掉", "需要去掉", "应删除"]
@@ -16,13 +16,9 @@ def get_corrections(think, wrong_chars, domain_phrases):
     # 为每个错字查找可能的改正字
     for char in wrong_chars:
         corrections = []
-        simplified = []  # 存储精简改正字
         texts = []
         seen_corrections = set()  # 用于记录已经见过的改正字
         remove = 0
-
-        # 获取当前错字的领域词组（从domain_phrases字典中提取）
-        current_domain = domain_phrases.get(char, "")
 
         # 遍历所有引号对
         for i in range(len(quote_matches) - 1):
@@ -36,8 +32,8 @@ def get_corrections(think, wrong_chars, domain_phrases):
                 # 优先检查删除关键字
                 if any(keyword in between_text for keyword in remove_keywords):
                     remove = 1
-                    corrections = [f'"{first_quote}"{between_text}"{second_quote}"']
-                    texts = []
+                    corrections = []
+                    texts = [f'“{first_quote}”{between_text}“{second_quote}”']
                     break  # 发现删除标记，立即终止当前错字的处理
 
                 # 然后检查修改关键字（只有没有删除标记时才检查）
@@ -49,30 +45,18 @@ def get_corrections(think, wrong_chars, domain_phrases):
                         seen_corrections.add(correction)
                         corrections.append(correction)
 
-                        # 生成精简改正字（去掉领域词组中已有的字）
-                        simplified_char = remove_domain_chars(correction, current_domain)
-                        simplified.append(simplified_char)
-
-                        texts.append(f'"{first_quote}"{between_text}"{second_quote}"')
+                        texts.append(f'“{first_quote}”{between_text}“{second_quote}”')
 
         # 更新错字字典
         wrong_chars[char]['corrections'] = corrections
+        current_domain = get_domain(output, char, corrections)
+        simplified = ["".join([c for c in correction if c not in current_domain]) for correction in corrections]
         wrong_chars[char]['simplified'] = simplified
         wrong_chars[char]['domain'] = current_domain
         wrong_chars[char]['text'] = texts
         wrong_chars[char]['remove'] = remove
 
     return wrong_chars
-
-
-def remove_domain_chars(correction, domain_phrase):
-    """从改正字中去掉领域词组中已有的字"""
-    # 如果改正字是单个字，且该字在领域词组中，则返回空字符串
-    if len(correction) == 1:
-        return "" if correction in domain_phrase else correction
-
-    # 如果改正字是多个字，去掉领域词组中已有的字
-    return "".join([c for c in correction if c not in domain_phrase])
 
 
 def process_think_text(think):

@@ -62,7 +62,7 @@ def process_single_chars(output, wrong_chars):
             final_correction = None
             if not single_chars:
                 final_correction = "No matching correction"
-                output = re.sub(r'</?csc>', '', output)
+                output = output.replace(f'<csc>{char}</csc>', char)
             else:
                 # 找被所有改正字包含的单字符
                 common_substrings = [sc for sc in single_chars if all(sc in c for c in corrections)]

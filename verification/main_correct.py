@@ -20,11 +20,9 @@ def process_json_file(input_file, output_file, correct_file):
 
         # 1. 提取错字及其邻错字数
         wrong_chars = get_wrong_characters(csc_output)
-        # 2. 提取领域词组
-        domain_phrases = get_domain(csc_output, wrong_chars)
-        # 3. 提取改正字与删除标识
-        wrong_chars = get_corrections(csc_think, wrong_chars, domain_phrases)
-        # 4. 获取最终改正字和改正后的句子
+        # 2. 提取改正字与删除标识
+        wrong_chars = get_corrections(csc_think, wrong_chars, csc_output)
+        # 3. 获取最终改正字和改正后的句子
         corrected_output, wrong_chars = get_output(csc_output, wrong_chars)
 
         # 构建结果记录csc_mes（记录细节，用于生成思维链数据集）
