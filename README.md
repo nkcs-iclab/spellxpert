@@ -1,5 +1,8 @@
 # SpellXpert
 
+![version-0.0.1](https://img.shields.io/badge/version-0.0.1-blue)
+![python->=3.10,<3.13](https://img.shields.io/badge/python->=3.10,<3.13-blue?logo=python&logoColor=white)
+
 ## Model
 
 You can download the SpellXpert model from our [Hugging Face](https://huggingface.co/SpellXpert/SpellXpert) repository.

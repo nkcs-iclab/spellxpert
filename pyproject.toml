@@ -1,0 +1,36 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'spellxpert'
+version = '0.0.1'
+description = 'A Chinese spelling error detection tool powered by LLMs'
+readme = 'README.md'
+requires-python = '>=3.10,<3.13'
+license = { file = 'LICENSE' }
+authors = [
+    { name = 'NKCS Intelligent Computing Lab' },
+]
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Operating System :: OS Independent',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+]
+dependencies = [
+    'deepmerge',
+    'fire',
+    'pyyaml',
+    'tqdm',
+]
+
+[tool.setuptools]
+platforms = ['any']
+
+[tool.setuptools.packages.find]
+include = ['csc', 'csc.*']
