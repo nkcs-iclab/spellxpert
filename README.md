@@ -126,9 +126,7 @@ In `scripts/verification` directory, run:
 
 ```bash
 python extract-verification-dataset.py \
-   --path=../../reports/evaluation/<run_name>/extract-output-FP-TP.cleaned.jsonl \
-   --output_path=verification_dataset.jsonl \  # Path to save the verification dataset
-   --template=1 \  # Template 1 is the best performing output template for SpellXpert
+   --path=../../reports/evaluation/<run_name>/extract-output-FP-TP.cleaned.jsonl
 ```
 
 The verification dataset will be saved in the `datasets/run` folder.
