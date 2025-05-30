@@ -69,7 +69,7 @@ Example entry in `dataset_info.json`:
 ### 2. Run vLLM inference
 
 The inference script is located in the `scripts/inference` directory.
-The `vllm_infer.py` script is deviated from Llama-Factory's `vllm_infer.py` script to support the SpellXpert dataset
+The `vllm-infer.py` script is deviated from Llama-Factory's `vllm_infer.py` script to support the SpellXpert dataset
 format and cascade verification.
 You have to install Llama-Factory and vLLM first to run the inference script.
 
@@ -83,7 +83,7 @@ cutoff_len=13312
 max_new_tokens=4096
 dataset=cscd_ns  # Replace with your dataset name (defined in `dataset_info.json`)
 
-python vllm_infer.py \
+python vllm-infer.py \
    --model_name_or_path=${model_name_or_path} \
    --dataset=${dataset} \
    --dataset_dir=${dataset_dir} \
@@ -148,7 +148,7 @@ cutoff_len=13312
 max_new_tokens=4096
 dataset=...  # Replace with your dataset name (defined in `dataset_info.json`)
 
-python vllm_infer.py \
+python vllm-infer.py \
    --model_name_or_path=${model_name_or_path} \
    --dataset=${dataset} \
    --dataset_dir=${dataset_dir} \
