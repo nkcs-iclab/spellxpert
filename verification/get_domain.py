@@ -6,6 +6,8 @@ def get_domain(csc_output, char, corrections):
     # 领域词组长度
     if not corrections:
         n = 2
+    elif max(len(element) for element in corrections) == 1:
+        n = 1
     else:
         n = max(len(element) for element in corrections) - 1
 
@@ -17,15 +19,18 @@ def get_domain(csc_output, char, corrections):
         wrong_tag = f"<csc>{re.escape(char)}</csc>"
 
     # 过滤 csc_output，去掉除当前错字标签外的内容
-    filtered_output = re.sub(r'(<csc>.*?</csc>)', lambda match: match.group(0) if wrong_tag in match.group(0) else '', csc_output)
-
+    filtered_output = re.sub(
+        r'(<csc>.*?</csc>)',
+        lambda match: match.group(0) if any(f"<csc>{re.escape(c)}</csc>" == match.group(0) for c in char) else '',
+        csc_output
+    )
     # 找到错字标签的位置
-    match = re.search(wrong_tag, filtered_output)
+    matches = re.finditer(wrong_tag, filtered_output)
 
     #  domain 默认值为空
     domain = ""
 
-    if match:
+    for match in matches:
         # 获取错字标签的左右边界
         left_pos = match.start()
         right_pos = match.end()
@@ -37,6 +42,6 @@ def get_domain(csc_output, char, corrections):
         right_context = filtered_output[right_pos:right_pos + n]
 
         # 结合左侧和右侧字符，形成领域词组
-        domain = left_context + right_context
+        domain += left_context + right_context
 
     return domain

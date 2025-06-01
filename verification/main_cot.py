@@ -43,32 +43,58 @@ def generate_reasoning_chain(wrong_chars: Dict, record: Dict) -> str:
                     char_reasoning.append('2.未找到匹配的改正词，保留原词')
                 else:
                     char_reasoning.append(f'1.候选改正词：在"csc_think"字段中定位被引号包裹的错字，在其附近{corr_desc}')
-                    if final_correction and final_correction != "No matching correction":
-                        char_reasoning.append(f'2.选择“{final_correction}”：“{final_correction}”长度为{len(char)}，与连续错字长度相同，因此选择“{final_correction}”作为最终的改正词')
+                    char_reasoning.append(f'2.上下文分析：在原文中找到错字附近的字为“{domain_phrase}”，记为错字的领域词组')
+                    char_reasoning.append(f'3.精简改正字：去除邻域词组已有字后得到精简的候选改正词集合{simplified}')
+                    if final_correction != "No matching correction":
+                        if len(final_correction) == len(char):
+                            char_reasoning.append(f'4.选择“{final_correction}”：“{final_correction}”长度为{len(char)}，与连续错字长度相同，因此选择“{final_correction}”作为最终的改正词')
+                        elif final_correction == '':
+                            char_reasoning.append(f'4.选择删除错字：经过上述操作最终得到应该用空字符替换错字，即在原句中删除错字即可')
+                        else:
+                            char_reasoning.append(f'4.选择“{final_correction}”：未找到与连续错字长度相同的改正词，因此退而选择“{final_correction}”作为最终的改正词')
                     else:
-                        char_reasoning.append(f'2.候选改正词中没有长度为{len(char)}的改正词，即未找到长度匹配的改正词，保留原词')
+                        char_reasoning.append(f'4.候选改正词中没有长度为{len(char)}的改正词，即未找到长度匹配的改正词，保留原词')
             else:  # 单个错字
                 if not corrections:
                     char_reasoning.append(f'1.候选改正字：在"csc_think"字段中定位被引号包裹的错字，在其附近没找到提示需要修改的语句，因此未能找到该错字的改正字')
                 else:
+                    merged_simplified = [
+                        elem for i, elem in enumerate(simplified)
+                        if not any(
+                            elem in other and elem != other
+                            for j, other in enumerate(simplified)
+                            if i != j
+                        )
+                    ]
                     char_reasoning.append(f'1.候选改正字：在"csc_think"字段中定位被引号包裹的错字，在其附近{corr_desc}')
-                    char_reasoning.append(f'2.上下文分析：基于错字所在位置的上下文，确定邻域词组为“{domain_phrase}”')
-                    char_reasoning.append(f'3.精简改正字：去除邻域词组已有字后得到精简的候选改正词集合{simplified}')
-                    if len(final_correction) > 1:
-                        char_reasoning.append(f'4.选用多字改正字：精简改正字中无可用的单字改正字或单子改正字与错字本身相同，因此选择候选改正字中的多字改正字“{final_correction}”对错字进行修改')
+                    char_reasoning.append(f'2.上下文分析：在原文中找到错字附近的字为“{domain_phrase}”，记为错字的领域词组')
+                    char_reasoning.append(f'3.精简改正字：去除邻域词组已有字后得到精简的改正字集合{simplified}')
+                    if merged_simplified == simplified:
+                        char_reasoning.append(f'4.合并改正字：在精简的改正字集合中，没有包含其余改正字的改正词，因此无需进行合并')
+                    else:
+                        char_reasoning.append(f'4.合并改正字：在精简的改正字集合中，有的改正字被包含在其他改正词中，对二者进行合并后得到合并改正字集合{merged_simplified}')
+                    if len(final_correction) > 1 and final_correction!='No matching correction':
+                        char_reasoning.append(f'5.选用多字改正字：精简改正字中无可用的单字改正字或单字改正字与错字本身相同，因此选择候选改正字中的多字改正字“{final_correction}”对错字进行修改')
                     else:
                         if final_correction == "No matching correction":
-                            char_reasoning.append('4.无有效精简改正字：精简改正字中无单字改正字，无法自动改正，因此直接输出原句')
+                            char_reasoning.append('5.无有效精简改正字：精简改正字中无单字改正字，无法自动改正，因此直接输出原句')
                         else:
                             # 解释选择逻辑
-                            if all(final_correction in c for c in corrections):
+                            if final_correction == char:
+                                logic = f'没有找到除“{char}”之外的合适的单字改正字，因此只能选择与错字本身相同的单字改正字“{final_correction}”作为最终改正字'
+                                char_reasoning.append(f'5.选择“{final_correction}”：{logic}')
+                            elif final_correction == '':
+                                char_reasoning.append(f'5.选择删除错字：经过上述操作最终得到应该用空字符替换错字，即在原句中删除错字即可')
+                            elif all(final_correction in c for c in corrections):
                                 logic = f'“{final_correction}”出现在所有改正词组中，大概率是正确的改正字'
+                                char_reasoning.append(f'5.选择“{final_correction}”：{logic}')
                             elif final_correction not in domain_phrase:
                                 logic = f'虽然单字改正字“{final_correction}”不是其余候选改正字的子集，但“{final_correction}”没有出现在错字的领域词组中，因此可以选择其作为最终改正字'
+                                char_reasoning.append(f'5.选择“{final_correction}”：{logic}')
                             else:
-                                logic = f'没有找到所有候选改正字的公共子集或没出现在领域词组中的单字改正字，因此随机选择单字改正字“{final_correction}”作为最终改正字'
+                                logic = f'没有找到所有候选改正字的公共子集或没出现在领域词组中的单字改正字，因此退而选择单字改正字“{final_correction}”作为最终改正字'
+                                char_reasoning.append(f'5.选择“{final_correction}”：{logic}')
 
-                            char_reasoning.append(f'4.选择“{final_correction}”：{logic}')
 
         reasoning.extend(char_reasoning)
 
@@ -81,6 +107,10 @@ def generate_reasoning_chain(wrong_chars: Dict, record: Dict) -> str:
             final = info.get('final_correction', 'No matching correction')
             if final == "No matching correction":
                 corrections_desc.append(f'“{char}”无改正')
+            elif final == '':
+                corrections_desc.append(f'“{char}”被删除')
+            elif final == char:
+                corrections_desc.append(f'“{char}”无需更改，保留原字即可')
             else:
                 corrections_desc.append(f'“{char}”改为“{final}”')
 

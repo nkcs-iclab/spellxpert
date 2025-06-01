@@ -26,18 +26,19 @@ def get_corrections(think, wrong_chars, output):
             second_quote = quote_matches[i + 1].group(1)  # 后引号内容
 
             # 检查前引号是否包含当前错字且两引号间字数<=30
-            if char in first_quote and (quote_matches[i + 1].start() - quote_matches[i].end()) <= 30:
+            if char in first_quote and (quote_matches[i + 1].start() - quote_matches[i].end()) <= 50:
                 between_text = think[quote_matches[i].end():quote_matches[i + 1].start()]
 
                 # 优先检查删除关键字
                 if any(keyword in between_text for keyword in remove_keywords):
                     remove = 1
                     corrections = []
-                    texts = [f'“{first_quote}”{between_text}“{second_quote}”']
+                    text = f'“{first_quote}”{between_text}“{second_quote}”'
+                    texts = [re.sub(r'[\n\r]+', '', text)]
                     break  # 发现删除标记，立即终止当前错字的处理
 
                 # 然后检查修改关键字（只有没有删除标记时才检查）
-                if not remove and any(keyword in between_text for keyword in modify_keywords):
+                if not remove and "应该用<csc>" not in between_text and any(keyword in between_text for keyword in modify_keywords):
                     # 获取改正字
                     correction = second_quote
                     # 如果改正字未出现过，则添加到结果中
@@ -45,9 +46,11 @@ def get_corrections(think, wrong_chars, output):
                         seen_corrections.add(correction)
                         corrections.append(correction)
 
-                        texts.append(f'“{first_quote}”{between_text}“{second_quote}”')
+                        text = f'“{first_quote}”{between_text}“{second_quote}”'
+                        texts.append(re.sub(r'[\n\r]+', '', text))
 
         # 更新错字字典
+        corrections = [s.replace("<csc>", "").replace("</csc>", "").replace("\n", "") for s in corrections]
         wrong_chars[char]['corrections'] = corrections
         current_domain = get_domain(output, char, corrections)
         simplified = ["".join([c for c in correction if c not in current_domain]) for correction in corrections]

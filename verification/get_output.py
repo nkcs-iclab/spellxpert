@@ -20,11 +20,11 @@ def process_continuous_phrases(output, wrong_chars):
 
             # 在simplified中找长度匹配的改正词
             simplified = info.get('simplified', [])
-            matching_corrections = [corr for corr in simplified if len(corr) == len(phrase)]
+            # matching_corrections = [corr for corr in simplified if len(corr) == len(phrase)]
 
-            if matching_corrections:
-                final_correction = matching_corrections[0]
-                info['final_correction'] = final_correction
+            if simplified:
+                final_correction = simplified[0]
+                info['final_correction'] = simplified[0]
 
                 # 构造带标签的原始错字序列
                 tagged_phrase = ''.join([f'<csc>{char}</csc>' for char in phrase])
@@ -59,7 +59,7 @@ def process_single_chars(output, wrong_chars):
     for char, info in wrong_chars.items():
         if len(char) == 1:  # 单个错字
             # 初始化final_correction
-            info['final_correction'] = None
+            info['final_correction'] = "No matching correction"
 
             # 处理需要删除的错字
             if info.get('remove', 0) == 1:
@@ -70,32 +70,52 @@ def process_single_chars(output, wrong_chars):
             # 处理需要改正的错字
             corrections = info.get('corrections', [])
             simplified = info.get('simplified', [])
-            single_chars = [c for c in simplified if len(c) == 1]
             domain_phrase = info.get('domain_phrase', '')
-            multi_correction = get_multi_correction(corrections, char, output)
+            # single_chars = [c for c in simplified if len(c) == 1]
+            # multi_correction = get_multi_correction(simplified, char, output)
+
+            # 合并单字和单字组合词
+            merged_simplified = [
+                elem for i, elem in enumerate(simplified)
+                if not any(
+                    elem in other and elem != other
+                    for j, other in enumerate(simplified)
+                    if i != j
+                )
+            ]
+            single_chars = [c for c in merged_simplified if len(c) == 1]
+            multi_correction = get_multi_correction(simplified, char, output)
 
             # 找出最佳改正字
-            if not single_chars:
+            if simplified and all(s == '' for s in simplified):
+                final_correction = ''
+            elif not single_chars:
                 final_correction = multi_correction
             else:
-                # 找被所有改正字包含的单字符
-                common_substrings = [sc for sc in single_chars if all(sc in c for c in corrections)]
-                if common_substrings:
-                    final_correction = common_substrings[0]
+                filtered_chars = [c for c in single_chars if c != char]
+                if filtered_chars:
+                    # 找被所有改正字包含的单字符
+                    common_substrings = [sc for sc in filtered_chars if all(sc in c for c in corrections)]
+                    if common_substrings:
+                        final_correction = common_substrings[0]
+                    else:
+                        # 找不属于邻域词组的单字符
+                        non_domain_chars = [c for c in filtered_chars if c not in domain_phrase]
+                        final_correction = non_domain_chars[0] if non_domain_chars else filtered_chars[0]
                 else:
-                    # 找不属于邻域词组的单字符
-                    non_domain_chars = [c for c in single_chars if c not in domain_phrase]
-                    final_correction = non_domain_chars[0] if non_domain_chars else single_chars[0]
+                    final_correction = char
 
             # 如果出现自己改成自己的情况且有多字候选词
-            if final_correction == char and multi_correction != "No matching correction":
+            if final_correction == char and len(multi_correction)<5:
                 final_correction = multi_correction
 
             # 更新final_correction字段
             info['final_correction'] = final_correction
 
-            # 执行替换（如果有效改正字）
-            if final_correction != "No matching correction":
+            # 替换output
+            if final_correction == "No matching correction":
+                output = output.replace(f'<csc>{char}</csc>', char)
+            else:
                 output = output.replace(f'<csc>{char}</csc>', final_correction)
 
     return output
