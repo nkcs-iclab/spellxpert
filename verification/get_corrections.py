@@ -51,9 +51,13 @@ def get_corrections(think, wrong_chars, output):
 
         # 更新错字字典
         corrections = [s.replace("<csc>", "").replace("</csc>", "").replace("\n", "") for s in corrections]
-        wrong_chars[char]['corrections'] = corrections
         current_domain = get_domain(output, char, corrections)
-        simplified = ["".join([c for c in correction if c not in current_domain]) for correction in corrections]
+        simplified = [
+            "".join([c for c in correction if c not in current_domain]) if len(correction) > 1
+            else correction
+            for correction in corrections
+        ]
+        wrong_chars[char]['corrections'] = corrections
         wrong_chars[char]['simplified'] = simplified
         wrong_chars[char]['domain'] = current_domain
         wrong_chars[char]['text'] = texts

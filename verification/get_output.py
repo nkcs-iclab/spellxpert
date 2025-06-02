@@ -17,23 +17,19 @@ def process_continuous_phrases(output, wrong_chars):
         if len(phrase) > 1:  # 连续错字词组
             # 初始化final_correction
             info['final_correction'] = None
-
-            # 在simplified中找长度匹配的改正词
             simplified = info.get('simplified', [])
-            # matching_corrections = [corr for corr in simplified if len(corr) == len(phrase)]
+            # 构造带标签的原始错字序列
+            tagged_phrase = ''.join([f'<csc>{char}</csc>' for char in phrase])
 
-            if simplified:
+            if info.get('remove', 0) == 1:
+                output = output.replace(tagged_phrase, '')
+            elif simplified:
                 final_correction = simplified[0]
                 info['final_correction'] = simplified[0]
-
-                # 构造带标签的原始错字序列
-                tagged_phrase = ''.join([f'<csc>{char}</csc>' for char in phrase])
-
                 # 替换整个错字序列
                 output = output.replace(tagged_phrase, final_correction)
             else:
                 info['final_correction'] = "No matching correction"
-                tagged_phrase = ''.join([f'<csc>{char}</csc>' for char in phrase])
                 output = output.replace(tagged_phrase, phrase)
 
     return output
@@ -95,7 +91,7 @@ def process_single_chars(output, wrong_chars):
                 filtered_chars = [c for c in single_chars if c != char]
                 if filtered_chars:
                     # 找被所有改正字包含的单字符
-                    common_substrings = [sc for sc in filtered_chars if all(sc in c for c in corrections)]
+                    common_substrings = [sc for sc in filtered_chars if all(sc in c for c in simplified)]
                     if common_substrings:
                         final_correction = common_substrings[0]
                     else:

@@ -16,8 +16,6 @@ def get_wrong_characters(output):
         # 提取所有错字
         chars = re.findall(r'<csc>(.?)</csc>', continuous_part)
 
-        continuity = len(chars)
-
         # 添加到字典
         for char in chars:
             # wrong_chars[words] = {'continuity': continuity}

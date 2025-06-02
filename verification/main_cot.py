@@ -1,8 +1,9 @@
 import json
+import re
 from typing import Dict, Any
 
 
-def generate_reasoning_chain(wrong_chars: Dict, record: Dict) -> str:
+def generate_reasoning_chain(output, wrong_chars: Dict, record: Dict) -> str:
     """生成结构化的推理过程"""
     # 1. 开头部分
     wrong_words = list(wrong_chars.keys())
@@ -22,9 +23,15 @@ def generate_reasoning_chain(wrong_chars: Dict, record: Dict) -> str:
         remove_flag = info.get('remove', 0)
 
         # 当前错字的推理
-        char_reasoning = [
-            f'\n第{i}个错字是“{char}”（{char_type}）:'
-        ]
+        tagged_phrase = ''.join([f'<csc>{c}</csc>' for c in char])
+        matches = re.findall(tagged_phrase, output)
+        count = len(matches)
+        if len(char) > 1:
+            char_type = "连续错字组" if count == 1 else f"连续错字组，重复{count}次"
+        else:
+            char_type = "单个错字" if count == 1 else f"单个错字，重复{count}次"
+
+        char_reasoning = [f'\n第{i}个错字是“{char}”（{char_type}）:']
 
         if remove_flag == 1:
             remove_text = info.get('text', [])
@@ -85,7 +92,7 @@ def generate_reasoning_chain(wrong_chars: Dict, record: Dict) -> str:
                                 char_reasoning.append(f'5.选择“{final_correction}”：{logic}')
                             elif final_correction == '':
                                 char_reasoning.append(f'5.选择删除错字：经过上述操作最终得到应该用空字符替换错字，即在原句中删除错字即可')
-                            elif all(final_correction in c for c in corrections):
+                            elif all(final_correction in c for c in simplified):
                                 logic = f'“{final_correction}”出现在所有改正词组中，大概率是正确的改正字'
                                 char_reasoning.append(f'5.选择“{final_correction}”：{logic}')
                             elif final_correction not in domain_phrase:
@@ -129,7 +136,7 @@ def transform_to_chain_format(csc_mes_file: str, output_file: str):
 
     chain_data = []
     for index, record in enumerate(data, start=1):
-        cot = generate_reasoning_chain(record["wrong_chars"], record)
+        cot = generate_reasoning_chain(record["csc_output"], record["wrong_chars"], record)
         chain_record = {
             "index": index,
             "input": {
