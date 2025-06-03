@@ -5,7 +5,7 @@
 
 ## Model
 
-You can download the SpellXpert model from our [Hugging Face](https://huggingface.co/SpellXpert/SpellXpert) repository.
+You can download the SpellXpert model from our [Hugging Face](https://huggingface.co/AlumiK/SpellXpert) repository.
 
 ## Dataset
 
