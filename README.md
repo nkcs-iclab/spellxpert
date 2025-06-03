@@ -126,7 +126,7 @@ In `scripts/verification` directory, run:
 
 ```bash
 python extract-verification-dataset.py \
-   --path=../../reports/evaluation/<run_name>/extract-output-FP-TP.jsonl
+   --path=../../reports/evaluation/<run_name>/extract-output-FP-TP.cleaned.jsonl
 ```
 
 The verification dataset will be saved in the `datasets/run` folder.
