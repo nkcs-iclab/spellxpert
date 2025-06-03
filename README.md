@@ -126,7 +126,7 @@ In `scripts/verification` directory, run:
 
 ```bash
 python extract-verification-dataset.py \
-   --path=../../reports/evaluation/<run_name>/extract-output-FP-TP.cleaned.jsonl
+   --path=../../reports/evaluation/<run_name>/extract-output-FP-TP.jsonl
 ```
 
 The verification dataset will be saved in the `datasets/run` folder.
@@ -163,10 +163,11 @@ In `scripts/verification` directory, run:
 
 ```bash
 python verify.py \
-   --path=generated_predictions.jsonl \  # Path to the generated predictions file from the inference step
-   --template=1 \  # Template 1 is the best performing output template for SpellXpert
-   --run_name=your_run_name \  # Name of the run, used for saving results
-   --csc-output=../../reports/evaluation/<run_name>/extract-output-FP-TP.cleaned.jsonl  # Path to the stage 1 output
+   --verification-outputs=generated_predictions.jsonl \  # Path to the generated predictions file from the inference step 3.4
+   --verification-output-template=1 \  # Template 1 is the best performing output template for SpellXpert'
+   --csc-outputs=../../reports/evaluation/<run name>/extract-output-FP-TP.jsonl \  # Path to the output file from stage 1
+   --csc-output-template=1 \  # Template 1 is the best performing output template for SpellXpert
+   --run_name=your_run_name  # Name of the run, used for saving results
 ```
 
 The stage 2 output is presented in `<project root>/reports/verification/<run name>/` directory.
