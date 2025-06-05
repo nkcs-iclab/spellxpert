@@ -30,7 +30,21 @@ class Dataset:
     def get_corrected_samples(self, save: bool = True):
         if not self.csc_outputs:
             raise RuntimeError('No CSC outputs found!')
-        # TODO: 添加对csc_outputs到修改后句子的处理逻辑
+        # TODO: 添加对csc_outputs到修改后句子的处理逻辑，输出的格式如下：
+        #  self.corrected_samples = [{
+        #      'index': ...,
+        #      'input': ...,
+        #      'output': ...,
+        #      'reasoning': ...,
+        #      'corrected': ...,
+        #      'correction_pairs': ...,
+        #      'final_corrections': ...,
+        #      'removal_flags': ...,
+        #  }]
+        if save:
+            with self.path.with_suffix('.corrected.jsonl').open('w') as f:
+                for item in self.corrected_samples:
+                    f.write(csc.prettify(item, indent=None) + '\n')
 
     def convert_samples_to_dataset_items(self):
         if not self.corrected_samples:
